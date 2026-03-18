@@ -45,3 +45,15 @@ export function getPublicSupabaseConfig() {
 
   return { supabaseUrl, supabaseAnonKey };
 }
+
+export function getPublicSupabaseConfigDebug() {
+  return {
+    hasSupabaseUrl: Boolean(process.env.SUPABASE_URL),
+    hasSupabaseAnonKey: Boolean(process.env.SUPABASE_ANON_KEY),
+    hasNextPublicSupabaseUrl: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+    hasNextPublicSupabaseAnonKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+    hasViteSupabaseUrl: Boolean(process.env.VITE_SUPABASE_URL),
+    hasViteSupabaseAnonKey: Boolean(process.env.VITE_SUPABASE_ANON_KEY),
+    hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY)
+  };
+}
