@@ -1,7 +1,7 @@
 import { getSupabase } from './supabase';
 
 async function authHeaders() {
-  const supabase = getSupabase();
+  const supabase = await getSupabase();
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   return token ? { Authorization: `Bearer ${token}` } : {};
