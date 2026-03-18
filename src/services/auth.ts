@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { getSupabase } from './supabase';
 
 export interface AuthUser {
   id: string;
@@ -28,6 +28,7 @@ export interface PersistedState {
 }
 
 export async function register(name: string, email: string, password: string): Promise<{ user: AuthUser; state: PersistedState }> {
+  const supabase = getSupabase();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -53,6 +54,7 @@ export async function register(name: string, email: string, password: string): P
 }
 
 export async function login(email: string, password: string): Promise<{ user: AuthUser; state: PersistedState }> {
+  const supabase = getSupabase();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
@@ -68,6 +70,7 @@ export async function login(email: string, password: string): Promise<{ user: Au
 }
 
 export async function restoreSession(): Promise<{ user: AuthUser; state: PersistedState } | null> {
+  const supabase = getSupabase();
   const { data, error } = await supabase.auth.getSession();
   if (error || !data.session?.user) {
     return null;
@@ -84,6 +87,7 @@ export async function restoreSession(): Promise<{ user: AuthUser; state: Persist
 }
 
 export async function logout(): Promise<void> {
+  const supabase = getSupabase();
   const { error } = await supabase.auth.signOut({ scope: 'local' });
   if (error) {
     throw error;
@@ -91,6 +95,7 @@ export async function logout(): Promise<void> {
 }
 
 export async function saveUserState(state: PersistedState): Promise<void> {
+  const supabase = getSupabase();
   const { data } = await supabase.auth.getSession();
   const userId = data.session?.user.id;
   if (!userId) {
@@ -114,6 +119,7 @@ export async function saveUserState(state: PersistedState): Promise<void> {
 }
 
 async function ensureAndLoadUserState(userId: string): Promise<PersistedState> {
+  const supabase = getSupabase();
   const existingState = await loadUserState(userId);
   if (existingState) {
     return existingState;
@@ -139,6 +145,7 @@ async function ensureAndLoadUserState(userId: string): Promise<PersistedState> {
 }
 
 async function loadUserState(userId: string): Promise<PersistedState | null> {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('user_state')
     .select('state_json')

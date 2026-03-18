@@ -5,6 +5,7 @@ import { Dashboard } from './components/Dashboard';
 import { LoginPage } from './components/LoginPage';
 import { fetchFocusSummary, fetchNews, fetchPlanOfAttack, Contact, KeywordInsight } from './services/gemini';
 import { login, logout, register, restoreSession, saveUserState, AuthUser, PersistedState } from './services/auth';
+import { getSupabaseConfigError } from './services/supabase';
 import {
   AlertCircle,
   RotateCcw,
@@ -315,6 +316,7 @@ function buildLocalFocusSummary(input: {
 }
 
 export default function App() {
+  const supabaseConfigError = getSupabaseConfigError();
   const [authLoading, setAuthLoading] = useState(true);
   const [authSubmitting, setAuthSubmitting] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -347,6 +349,28 @@ export default function App() {
   const saveTimeoutRef = useRef<number | null>(null);
   const focusTimeoutRef = useRef<number | null>(null);
   const lastGoodFocusSummaryRef = useRef<string>('');
+
+  if (supabaseConfigError) {
+    return (
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,0,204,0.18),_transparent_35%),linear-gradient(135deg,_#07011f_0%,_#0B004E_52%,_#1d0b59_100%)] px-6 py-10 text-white">
+        <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-4xl items-center justify-center">
+          <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-white/[0.08] p-8 shadow-2xl backdrop-blur-xl">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-magenta">Configuration Required</p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight">Supabase environment variables are missing.</h1>
+            <p className="mt-4 text-sm leading-7 text-white/75">{supabaseConfigError}</p>
+            <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/80">
+              <p>Add these in Vercel, then redeploy:</p>
+              <p className="mt-3 font-mono text-xs leading-6">VITE_SUPABASE_URL</p>
+              <p className="font-mono text-xs leading-6">VITE_SUPABASE_ANON_KEY</p>
+              <p className="font-mono text-xs leading-6">SUPABASE_URL</p>
+              <p className="font-mono text-xs leading-6">SUPABASE_ANON_KEY</p>
+              <p className="font-mono text-xs leading-6">OPENAI_API_KEY</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     void initializeSession();
