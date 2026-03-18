@@ -44,7 +44,7 @@ export function LoginPage({ loading, onLogin, onRegister }: LoginPageProps) {
               Private deal intelligence, now behind a real login.
             </h1>
             <p className="max-w-xl text-base leading-7 text-white/70">
-              Sign in to restore your saved account selections, persona, custom prompts, and previous reports from the local SQLite database.
+              Sign in to restore your saved account selections, persona, custom prompts, and previous reports from secure Supabase-backed storage.
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
@@ -53,8 +53,8 @@ export function LoginPage({ loading, onLogin, onRegister }: LoginPageProps) {
               <p className="mt-3 text-sm text-white/75">User data survives refreshes and app restarts.</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-magenta">Local DB</p>
-              <p className="mt-3 text-sm text-white/75">Accounts and saved state are stored in `data/wintel.db`.</p>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-magenta">Postgres</p>
+              <p className="mt-3 text-sm text-white/75">Accounts and saved state are stored in Supabase Postgres with per-user access controls.</p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-magenta">Server-Side Key</p>

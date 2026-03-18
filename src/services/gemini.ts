@@ -1,20 +1,18 @@
-const SESSION_TOKEN_KEY = 'wintel_session_token';
+import { supabase } from './supabase';
 
-function getSessionToken() {
-  return localStorage.getItem(SESSION_TOKEN_KEY);
-}
-
-function authHeaders() {
-  const token = getSessionToken();
+async function authHeaders() {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const authorizationHeaders = await authHeaders();
   const response = await fetch(path, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      ...authHeaders(),
+      ...authorizationHeaders,
       ...(init?.headers || {})
     }
   });
@@ -100,5 +98,3 @@ export async function fetchNews(
     body: JSON.stringify({ opcos, functions, userQuery, fileContext, userProfile })
   });
 }
-
-export { SESSION_TOKEN_KEY };

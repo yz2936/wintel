@@ -1,7 +1,7 @@
-import { SESSION_TOKEN_KEY } from './gemini';
+import { supabase } from './supabase';
 
 export interface AuthUser {
-  id: number;
+  id: string;
   name: string;
   email: string;
   lastLoginAt: string;
@@ -27,90 +27,167 @@ export interface PersistedState {
   messages: PersistedChatMessage[];
 }
 
-interface AuthResponse {
-  token: string;
-  user: AuthUser;
-  state: PersistedState;
-}
-
-function saveToken(token: string) {
-  localStorage.setItem(SESSION_TOKEN_KEY, token);
-}
-
-function getToken() {
-  return localStorage.getItem(SESSION_TOKEN_KEY);
-}
-
-function clearToken() {
-  localStorage.removeItem(SESSION_TOKEN_KEY);
-}
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getToken();
-  const response = await fetch(path, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init?.headers || {})
+export async function register(name: string, email: string, password: string): Promise<{ user: AuthUser; state: PersistedState }> {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { name }
     }
   });
 
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.error || `Request failed with status ${response.status}`);
+  if (error) {
+    throw error;
   }
 
-  if (response.status === 204) {
-    return undefined as T;
+  if (!data.user) {
+    throw new Error('Sign-up failed.');
   }
 
-  return response.json() as Promise<T>;
-}
+  if (!data.session) {
+    throw new Error('Check your email to confirm your account, then log in.');
+  }
 
-export async function register(name: string, email: string, password: string): Promise<{ user: AuthUser; state: PersistedState }> {
-  const response = await request<AuthResponse>('/api/auth/register', {
-    method: 'POST',
-    body: JSON.stringify({ name, email, password })
-  });
-  saveToken(response.token);
-  return { user: response.user, state: response.state };
+  const state = await ensureAndLoadUserState(data.user.id);
+  return { user: mapUser(data.user), state };
 }
 
 export async function login(email: string, password: string): Promise<{ user: AuthUser; state: PersistedState }> {
-  const response = await request<AuthResponse>('/api/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password })
-  });
-  saveToken(response.token);
-  return { user: response.user, state: response.state };
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data.user) {
+    throw new Error('Login failed.');
+  }
+
+  const state = await ensureAndLoadUserState(data.user.id);
+  return { user: mapUser(data.user), state };
 }
 
 export async function restoreSession(): Promise<{ user: AuthUser; state: PersistedState } | null> {
-  const token = getToken();
-  if (!token) {
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session?.user) {
     return null;
   }
 
   try {
-    return await request<{ user: AuthUser; state: PersistedState }>('/api/auth/session');
+    const user = data.session.user;
+    const state = await ensureAndLoadUserState(user.id);
+    return { user: mapUser(user), state };
   } catch {
-    clearToken();
+    await supabase.auth.signOut({ scope: 'local' });
     return null;
   }
 }
 
 export async function logout(): Promise<void> {
-  try {
-    await request<void>('/api/auth/logout', { method: 'POST' });
-  } finally {
-    clearToken();
+  const { error } = await supabase.auth.signOut({ scope: 'local' });
+  if (error) {
+    throw error;
   }
 }
 
 export async function saveUserState(state: PersistedState): Promise<void> {
-  await request('/api/user/state', {
-    method: 'PUT',
-    body: JSON.stringify({ state })
-  });
+  const { data } = await supabase.auth.getSession();
+  const userId = data.session?.user.id;
+  if (!userId) {
+    throw new Error('No active session.');
+  }
+
+  const { error } = await supabase
+    .from('user_state')
+    .upsert(
+      {
+        user_id: userId,
+        state_json: state,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: 'user_id' }
+    );
+
+  if (error) {
+    throw error;
+  }
+}
+
+async function ensureAndLoadUserState(userId: string): Promise<PersistedState> {
+  const existingState = await loadUserState(userId);
+  if (existingState) {
+    return existingState;
+  }
+
+  const defaultState = defaultUserState();
+  const { error } = await supabase
+    .from('user_state')
+    .upsert(
+      {
+        user_id: userId,
+        state_json: defaultState,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: 'user_id' }
+    );
+
+  if (error) {
+    throw error;
+  }
+
+  return defaultState;
+}
+
+async function loadUserState(userId: string): Promise<PersistedState | null> {
+  const { data, error } = await supabase
+    .from('user_state')
+    .select('state_json')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data?.state_json) {
+    return null;
+  }
+
+  return sanitizeUserState(data.state_json);
+}
+
+function defaultUserState(): PersistedState {
+  return {
+    selectedCompanyId: null,
+    selectedOpCos: [],
+    selectedFunctions: [],
+    selectedYear: null,
+    userProfile: '',
+    customQuestions: [],
+    messages: []
+  };
+}
+
+function sanitizeUserState(input: any): PersistedState {
+  const fallback = defaultUserState();
+  return {
+    selectedCompanyId: typeof input?.selectedCompanyId === 'string' ? input.selectedCompanyId : null,
+    selectedOpCos: Array.isArray(input?.selectedOpCos) ? input.selectedOpCos.filter((value: unknown) => typeof value === 'string') : fallback.selectedOpCos,
+    selectedFunctions: Array.isArray(input?.selectedFunctions) ? input.selectedFunctions.filter((value: unknown) => typeof value === 'string') : fallback.selectedFunctions,
+    selectedYear: typeof input?.selectedYear === 'number' ? input.selectedYear : null,
+    userProfile: typeof input?.userProfile === 'string' ? input.userProfile : fallback.userProfile,
+    customQuestions: Array.isArray(input?.customQuestions) ? input.customQuestions.filter((value: unknown) => typeof value === 'string') : fallback.customQuestions,
+    messages: Array.isArray(input?.messages) ? input.messages : fallback.messages
+  };
+}
+
+function mapUser(user: { id: string; email?: string | null; user_metadata?: Record<string, any>; updated_at?: string | null; last_sign_in_at?: string | null }): AuthUser {
+  return {
+    id: user.id,
+    name: typeof user.user_metadata?.name === 'string' && user.user_metadata.name.trim()
+      ? user.user_metadata.name.trim()
+      : (user.email || 'User').split('@')[0],
+    email: user.email || '',
+    lastLoginAt: user.last_sign_in_at || user.updated_at || new Date().toISOString()
+  };
 }
