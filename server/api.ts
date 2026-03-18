@@ -1,5 +1,5 @@
 import { fetchFocusSummary, fetchNews, fetchPlanOfAttack, fetchTimeline } from './openai';
-import { getPublicSupabaseConfig, getPublicSupabaseConfigDebug, getServerSupabase } from './supabase';
+import { getServerSupabase } from './supabase';
 
 export type ApiResult = {
   status: number;
@@ -18,21 +18,6 @@ export async function handleApiRequest(input: {
 
     if (method === 'GET' && path === '/api/health') {
       return json(200, { ok: true });
-    }
-
-    if (method === 'GET' && path === '/api/config') {
-      const config = getPublicSupabaseConfig();
-      if (!config.supabaseUrl || !config.supabaseAnonKey) {
-        return json(500, {
-          error: 'Supabase public config is missing on the server. Set SUPABASE_URL and SUPABASE_ANON_KEY in Vercel.',
-          debug: getPublicSupabaseConfigDebug()
-        });
-      }
-
-      return json(200, {
-        ...config,
-        debug: getPublicSupabaseConfigDebug()
-      });
     }
 
     if (method === 'POST' && path === '/api/ai/news') {
