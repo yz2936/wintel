@@ -6,7 +6,7 @@ export async function handleWithPath(
   path: string
 ) {
   try {
-    const { handleApiRequest } = await import('../server/api');
+    const { handleApiRequest } = await import('../server/api.js');
     const body = req.body ?? await readJsonBody(req);
     const result = await handleApiRequest({
       method: req.method,

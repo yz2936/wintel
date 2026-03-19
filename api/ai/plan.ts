@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 
 export default async function handler(req: IncomingMessage & { body?: any; url?: string }, res: ServerResponse) {
   try {
-    const { fetchPlanOfAttack, requireUser } = await import('./_shared');
+    const { fetchPlanOfAttack, requireUser } = await import('./_shared.js');
     if (req.method !== 'POST') {
       res.statusCode = 405;
       res.setHeader('Content-Type', 'application/json');

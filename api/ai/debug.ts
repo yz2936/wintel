@@ -8,7 +8,7 @@ export default async function handler(req: IncomingMessage & { body?: any; url?:
 
   try {
     (result.phases as string[]).push('handler_started');
-    const shared = await import('./_shared');
+    const shared = await import('./_shared.js');
     (result.phases as string[]).push('shared_imported');
 
     const debugConfig = getEnvDebug();
