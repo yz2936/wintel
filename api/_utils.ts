@@ -1,5 +1,4 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { handleApiRequest } from '../server/api';
 
 export async function handleWithPath(
   req: IncomingMessage & { body?: any; url?: string },
@@ -7,6 +6,7 @@ export async function handleWithPath(
   path: string
 ) {
   try {
+    const { handleApiRequest } = await import('../server/api');
     const body = req.body ?? await readJsonBody(req);
     const result = await handleApiRequest({
       method: req.method,
