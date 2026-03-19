@@ -5,8 +5,10 @@ import { Dashboard } from './components/Dashboard';
 import { LoginPage } from './components/LoginPage';
 import { fetchFocusSummary, fetchNews, fetchPlanOfAttack, Contact, KeywordInsight } from './services/gemini';
 import { login, logout, register, restoreSession, saveUserState, AuthUser, PersistedState } from './services/auth';
+import { fetchDocketWatchEvents, runDocketWatchSync, type DocketWatchEvent, type DocketWatchSubscription } from './services/dockets';
 import {
   AlertCircle,
+  BellRing,
   BriefcaseBusiness,
   RotateCcw,
   ChevronDown,
@@ -23,6 +25,7 @@ import {
   MessageSquare,
   Paperclip,
   RadioTower,
+  RefreshCw,
   Send,
   Sparkles,
   Target,
@@ -391,6 +394,12 @@ export default function App() {
   const [composerHeight, setComposerHeight] = useState(104);
   const [isResizingComposer, setIsResizingComposer] = useState(false);
   const [isComposerCollapsed, setIsComposerCollapsed] = useState(false);
+  const [docketSubscription, setDocketSubscription] = useState<DocketWatchSubscription | null>(null);
+  const [docketEvents, setDocketEvents] = useState<DocketWatchEvent[]>([]);
+  const [docketLoading, setDocketLoading] = useState(false);
+  const [docketSyncing, setDocketSyncing] = useState(false);
+  const [docketError, setDocketError] = useState<string | null>(null);
+  const [docketStatus, setDocketStatus] = useState('Sign in to load your docket watch.');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<number | null>(null);
@@ -404,6 +413,18 @@ export default function App() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  useEffect(() => {
+    if (!user || !stateHydrated) {
+      setDocketSubscription(null);
+      setDocketEvents([]);
+      setDocketError(null);
+      setDocketStatus('Sign in to load your docket watch.');
+      return;
+    }
+
+    void refreshDocketWatch();
+  }, [user, stateHydrated]);
 
   useEffect(() => {
     if (!user || !stateHydrated) {
@@ -756,6 +777,51 @@ export default function App() {
     void handleSend(undefined, query);
   };
 
+  const refreshDocketWatch = async () => {
+    if (!user) {
+      return;
+    }
+
+    setDocketLoading(true);
+    setDocketError(null);
+
+    try {
+      const result = await fetchDocketWatchEvents();
+      setDocketSubscription(result.subscription);
+      setDocketEvents(result.events);
+
+      if (!result.subscription) {
+        setDocketStatus('Docket watch has not been initialized for this user yet.');
+      } else if (result.events.length === 0) {
+        setDocketStatus(`Watching weekly for ${result.subscription.recipient_email}. No docket changes recorded yet.`);
+      } else {
+        setDocketStatus(`Watching weekly for ${result.subscription.recipient_email}. ${result.events.length} recent docket event${result.events.length === 1 ? '' : 's'} loaded.`);
+      }
+    } catch (loadError: any) {
+      setDocketError(loadError?.message || 'Failed to load docket watch.');
+      setDocketStatus('Docket watch could not be loaded.');
+    } finally {
+      setDocketLoading(false);
+    }
+  };
+
+  const handleRunDocketSync = async () => {
+    setDocketSyncing(true);
+    setDocketError(null);
+
+    try {
+      const result = await runDocketWatchSync();
+      const warningText = result.warnings.length > 0 ? ` Warnings: ${result.warnings.join(' | ')}` : '';
+      setDocketStatus(`Checked ${result.scannedTargets} active docket target${result.scannedTargets === 1 ? '' : 's'}. Created ${result.createdEvents} new event${result.createdEvents === 1 ? '' : 's'}.${warningText}`);
+      await refreshDocketWatch();
+    } catch (syncError: any) {
+      setDocketError(syncError?.message || 'Failed to run docket sync.');
+      setDocketStatus('Docket sync failed.');
+    } finally {
+      setDocketSyncing(false);
+    }
+  };
+
   const handleClearConversation = () => {
     setMessages([]);
     setCurrentInput('');
@@ -878,6 +944,77 @@ export default function App() {
                       <span><strong className="font-semibold text-brand-navy">OpCos:</strong> {activeOpCos.length > 0 ? activeOpCos.join(', ') : 'All relevant entities'}</span>
                       <span><strong className="font-semibold text-brand-navy">Functions:</strong> {currentFunctionNames.length > 0 ? currentFunctionNames.join(', ') : 'General lens'}</span>
                       <span><strong className="font-semibold text-brand-navy">Timeline:</strong> {selectedYear || 'Next 5 years'}</span>
+                    </div>
+
+                    <div className="mt-4 rounded-2xl border border-brand-magenta/12 bg-[linear-gradient(180deg,rgba(248,244,255,0.95),rgba(255,255,255,0.96))] p-4 shadow-sm">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 text-brand-magenta">
+                            <BellRing className="h-4 w-4" />
+                            <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Docket Watch</span>
+                          </div>
+                          <h3 className="mt-2 text-base font-semibold text-brand-navy">Monitor official filing changes without leaving the workspace</h3>
+                          <p className="mt-1 text-sm leading-6 text-neutral-600">
+                            {docketLoading ? 'Loading watch status...' : docketStatus}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void handleRunDocketSync()}
+                          disabled={!user || docketLoading || docketSyncing}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-navy px-4 text-sm font-semibold text-white shadow-lg shadow-brand-navy/15 transition-colors hover:bg-brand-navy/90 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {docketSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                          Check Docket Changes
+                        </button>
+                      </div>
+
+                      {docketSubscription && (
+                        <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                          <span className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 font-semibold text-neutral-600">
+                            Weekly email to {docketSubscription.recipient_email}
+                          </span>
+                          <span className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 font-semibold text-neutral-600">
+                            Cadence: {docketSubscription.frequency}
+                          </span>
+                        </div>
+                      )}
+
+                      {docketError && (
+                        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                          {docketError}
+                        </div>
+                      )}
+
+                      {!docketLoading && docketEvents.length === 0 && !docketError && (
+                        <div className="mt-4 rounded-2xl border border-dashed border-neutral-200 bg-white/80 px-4 py-4 text-sm leading-6 text-neutral-500">
+                          No docket changes have been captured yet. Use <span className="font-semibold text-brand-navy">Check Docket Changes</span> to poll the active watches and populate this feed when official filings move.
+                        </div>
+                      )}
+
+                      {docketEvents.length > 0 && (
+                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+                          {docketEvents.slice(0, 4).map((event) => (
+                            <a
+                              key={event.id}
+                              href={event.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group rounded-2xl border border-neutral-200 bg-white px-4 py-3 transition-all hover:-translate-y-0.5 hover:border-brand-magenta/35 hover:shadow-md"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-magenta">
+                                  {event.event_type.replace(/_/g, ' ')}
+                                </span>
+                                <ExternalLink className="h-3.5 w-3.5 text-neutral-400 transition-colors group-hover:text-brand-magenta" />
+                              </div>
+                              <h4 className="mt-2 text-sm font-semibold leading-6 text-brand-navy">{event.title}</h4>
+                              <p className="mt-2 text-sm leading-6 text-neutral-600">{event.summary}</p>
+                              <p className="mt-3 text-xs text-neutral-400">{format(new Date(event.event_date), 'MMM d, yyyy h:mm a')}</p>
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

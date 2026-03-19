@@ -352,10 +352,10 @@ export async function listRecentEventsForUser(userId: string) {
   };
 }
 
-export async function syncDocketWatches(options?: { forceSend?: boolean }) {
+export async function syncDocketWatches(options?: { forceSend?: boolean; userId?: string }) {
   const admin = getAdminClient();
   const warnings: string[] = [];
-  const subscriptions = await admin
+  let query = admin
     .from('docket_watch_subscriptions')
     .select(`
       id,
@@ -382,6 +382,12 @@ export async function syncDocketWatches(options?: { forceSend?: boolean }) {
       )
     `)
     .eq('is_active', true);
+
+  if (options?.userId) {
+    query = query.eq('user_id', options.userId);
+  }
+
+  const subscriptions = await query;
 
   if (subscriptions.error) {
     throw new Error(subscriptions.error.message);
