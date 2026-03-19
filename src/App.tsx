@@ -5,7 +5,7 @@ import { Dashboard } from './components/Dashboard';
 import { LoginPage } from './components/LoginPage';
 import { fetchFocusSummary, fetchNews, fetchPlanOfAttack, Contact, KeywordInsight } from './services/gemini';
 import { login, logout, register, restoreSession, saveUserState, AuthUser, PersistedState } from './services/auth';
-import { fetchDocketWatchEvents, runDocketWatchSync, type DocketWatchEvent, type DocketWatchSubscription } from './services/dockets';
+import { fetchDocketWatchEvents, runDocketWatchSync, type DocketWatchEvent, type DocketWatchSubscription, type DocketWatchTarget } from './services/dockets';
 import {
   AlertCircle,
   BellRing,
@@ -395,6 +395,7 @@ export default function App() {
   const [isResizingComposer, setIsResizingComposer] = useState(false);
   const [isComposerCollapsed, setIsComposerCollapsed] = useState(false);
   const [docketSubscription, setDocketSubscription] = useState<DocketWatchSubscription | null>(null);
+  const [docketTargets, setDocketTargets] = useState<DocketWatchTarget[]>([]);
   const [docketEvents, setDocketEvents] = useState<DocketWatchEvent[]>([]);
   const [docketLoading, setDocketLoading] = useState(false);
   const [docketSyncing, setDocketSyncing] = useState(false);
@@ -417,6 +418,7 @@ export default function App() {
   useEffect(() => {
     if (!user || !stateHydrated) {
       setDocketSubscription(null);
+      setDocketTargets([]);
       setDocketEvents([]);
       setDocketError(null);
       setDocketStatus('Sign in to load your docket watch.');
@@ -788,12 +790,15 @@ export default function App() {
     try {
       const result = await fetchDocketWatchEvents();
       setDocketSubscription(result.subscription);
+      setDocketTargets(result.targets);
       setDocketEvents(result.events);
 
       if (!result.subscription) {
         setDocketStatus('Docket watch has not been initialized for this user yet.');
+      } else if (result.targets.length === 0) {
+        setDocketStatus(`Watching weekly for ${result.subscription.recipient_email}. No active docket targets are available yet.`);
       } else if (result.events.length === 0) {
-        setDocketStatus(`Watching weekly for ${result.subscription.recipient_email}. No docket changes recorded yet.`);
+        setDocketStatus(`Watching weekly for ${result.subscription.recipient_email}. Latest docket summaries are loaded; no change events recorded yet.`);
       } else {
         setDocketStatus(`Watching weekly for ${result.subscription.recipient_email}. ${result.events.length} recent docket event${result.events.length === 1 ? '' : 's'} loaded.`);
       }
@@ -992,8 +997,57 @@ export default function App() {
                         </div>
                       )}
 
+                      {docketTargets.length > 0 && (
+                        <div className="mt-4">
+                          <div className="mb-3 flex items-center gap-2 text-brand-magenta">
+                            <RadioTower className="h-4 w-4" />
+                            <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Latest Docket Summaries</span>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            {docketTargets.map((target) => (
+                              <a
+                                key={target.id}
+                                href={target.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group rounded-2xl border border-neutral-200 bg-white px-4 py-3 transition-all hover:-translate-y-0.5 hover:border-brand-magenta/35 hover:shadow-md"
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-magenta">
+                                    {target.state} {target.utility_type}
+                                  </span>
+                                  <ExternalLink className="h-3.5 w-3.5 text-neutral-400 transition-colors group-hover:text-brand-magenta" />
+                                </div>
+                                <h4 className="mt-2 text-sm font-semibold leading-6 text-brand-navy">{target.display_name}</h4>
+                                <p className="mt-2 text-sm leading-6 text-neutral-600">
+                                  {target.summary_text || 'No snapshot has been stored yet. Run a docket check to fetch the latest official summary.'}
+                                </p>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {target.docket_numbers.map((docketNumber) => (
+                                    <span
+                                      key={`${target.id}-${docketNumber}`}
+                                      className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[11px] font-semibold text-neutral-600"
+                                    >
+                                      {docketNumber}
+                                    </span>
+                                  ))}
+                                </div>
+                                <p className="mt-3 text-xs text-neutral-400">
+                                  {target.last_checked_at ? `Last checked ${format(new Date(target.last_checked_at), 'MMM d, yyyy h:mm a')}` : 'Not checked yet'}
+                                </p>
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {docketEvents.length > 0 && (
-                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        <div className="mt-4">
+                          <div className="mb-3 flex items-center gap-2 text-brand-magenta">
+                            <BellRing className="h-4 w-4" />
+                            <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Recent Change Events</span>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-2">
                           {docketEvents.slice(0, 4).map((event) => (
                             <a
                               key={event.id}
@@ -1013,6 +1067,7 @@ export default function App() {
                               <p className="mt-3 text-xs text-neutral-400">{format(new Date(event.event_date), 'MMM d, yyyy h:mm a')}</p>
                             </a>
                           ))}
+                          </div>
                         </div>
                       )}
                     </div>

@@ -17,8 +17,23 @@ export type DocketWatchEvent = {
   payload?: Record<string, unknown> | null;
 };
 
+export type DocketWatchTarget = {
+  id: string;
+  source_key: string;
+  state: string;
+  account_name: string;
+  utility_type: string;
+  display_name: string;
+  provider: string;
+  source_url: string;
+  summary_text: string | null;
+  last_checked_at: string | null;
+  docket_numbers: string[];
+};
+
 export type DocketWatchEventsResponse = {
   subscription: DocketWatchSubscription | null;
+  targets: DocketWatchTarget[];
   events: DocketWatchEvent[];
 };
 

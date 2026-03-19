@@ -55,6 +55,20 @@ type WatchEventRow = {
   created_at: string;
 };
 
+type WatchTargetStatus = {
+  id: string;
+  source_key: string;
+  state: string;
+  account_name: string;
+  utility_type: string;
+  display_name: string;
+  provider: string;
+  source_url: string;
+  summary_text: string | null;
+  last_checked_at: string | null;
+  docket_numbers: string[];
+};
+
 type ExtractorType = 'ny_case_filings' | 'ma_account_listing' | 'page_text_change';
 
 type TargetSeed = {
@@ -331,8 +345,48 @@ export async function listRecentEventsForUser(userId: string) {
   if (!subscription.data?.id) {
     return {
       subscription: null,
+      targets: [] as WatchTargetStatus[],
       events: [] as WatchEventRow[]
     };
+  }
+
+  const targets = await admin
+    .from('docket_watch_targets')
+    .select('id, source_key, state, account_name, utility_type, display_name, provider, source_url, docket_numbers')
+    .eq('subscription_id', subscription.data.id)
+    .eq('is_active', true)
+    .eq('state', 'NY')
+    .order('display_name', { ascending: true });
+
+  if (targets.error) {
+    throw new Error(targets.error.message);
+  }
+
+  const targetRows = (targets.data ?? []) as Array<Pick<WatchTargetRow, 'id' | 'source_key' | 'state' | 'account_name' | 'utility_type' | 'display_name' | 'provider' | 'source_url' | 'docket_numbers'>>;
+  const snapshotsByTarget = new Map<string, SnapshotRow>();
+
+  if (targetRows.length > 0) {
+    const snapshots = await admin
+      .from('docket_watch_snapshots')
+      .select('target_id, summary_text, fetched_at, snapshot_hash, payload')
+      .in('target_id', targetRows.map((target) => target.id))
+      .order('fetched_at', { ascending: false });
+
+    if (snapshots.error) {
+      throw new Error(snapshots.error.message);
+    }
+
+    for (const snapshot of snapshots.data ?? []) {
+      const targetId = (snapshot as { target_id: string }).target_id;
+      if (!snapshotsByTarget.has(targetId)) {
+        snapshotsByTarget.set(targetId, {
+          snapshot_hash: (snapshot as { snapshot_hash: string }).snapshot_hash,
+          summary_text: (snapshot as { summary_text: string }).summary_text,
+          payload: (snapshot as { payload: Record<string, unknown> | null }).payload,
+          fetched_at: (snapshot as { fetched_at: string }).fetched_at
+        });
+      }
+    }
   }
 
   const events = await admin
@@ -348,6 +402,22 @@ export async function listRecentEventsForUser(userId: string) {
 
   return {
     subscription: subscription.data,
+    targets: targetRows.map((target) => {
+      const snapshot = snapshotsByTarget.get(target.id);
+      return {
+        id: target.id,
+        source_key: target.source_key,
+        state: target.state,
+        account_name: target.account_name,
+        utility_type: target.utility_type,
+        display_name: target.display_name,
+        provider: target.provider,
+        source_url: target.source_url,
+        summary_text: snapshot?.summary_text || null,
+        last_checked_at: snapshot?.fetched_at || null,
+        docket_numbers: target.docket_numbers
+      } satisfies WatchTargetStatus;
+    }),
     events: (events.data ?? []) as WatchEventRow[]
   };
 }
