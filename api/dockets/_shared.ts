@@ -213,7 +213,10 @@ const DEFAULT_TARGETS: readonly TargetSeed[] = [
     sourceUrl: 'https://www.mass.gov/event/public-hearing-for-national-grid-base-distribution-rates-dpu-26-50-03-18-2026',
     extractorType: 'page_text_change',
     matchTerms: ['National Grid', 'DPU 26-50', 'base distribution rates'],
-    docketNumbers: ['26-50']
+    docketNumbers: ['26-50'],
+    metadata: {
+      optional: true
+    }
   }
 ];
 
@@ -393,10 +396,15 @@ export async function syncDocketWatches(options?: { forceSend?: boolean }) {
 
     for (const target of subscription.docket_watch_targets.filter((item) => item.is_active)) {
       scannedTargets += 1;
-      const event = await syncSingleTarget(admin, subscription, target);
-      if (event) {
-        createdEvents += 1;
-        createdForSubscription.push(event);
+      try {
+        const event = await syncSingleTarget(admin, subscription, target);
+        if (event) {
+          createdEvents += 1;
+          createdForSubscription.push(event);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : `Unknown sync failure for ${target.source_key}`;
+        warnings.push(`Target ${target.source_key} failed: ${message}`);
       }
     }
 
@@ -861,7 +869,10 @@ function getServerConfig() {
 async function fetchHtml(url: string) {
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'WintelDocketMonitor/1.0'
+      'User-Agent': 'Mozilla/5.0 (compatible; WintelDocketMonitor/1.0; +https://wintel-five.vercel.app)',
+      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+      Referer: 'https://www.google.com/'
     }
   });
 
