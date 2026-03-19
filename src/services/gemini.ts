@@ -19,8 +19,19 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.error || `Request failed with status ${response.status}`);
+    const rawText = await response.text().catch(() => '');
+    let payload: any = null;
+    if (rawText) {
+      try {
+        payload = JSON.parse(rawText);
+      } catch {
+        payload = null;
+      }
+    }
+    if (payload?.error) {
+      throw new Error(payload.error);
+    }
+    throw new Error(rawText || `Request failed with status ${response.status}`);
   }
 
   return response.json() as Promise<T>;

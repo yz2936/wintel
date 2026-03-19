@@ -6,22 +6,30 @@ export async function handleWithPath(
   res: ServerResponse,
   path: string
 ) {
-  const body = req.body ?? await readJsonBody(req);
-  const result = await handleApiRequest({
-    method: req.method,
-    path,
-    headers: req.headers,
-    body
-  });
+  try {
+    const body = req.body ?? await readJsonBody(req);
+    const result = await handleApiRequest({
+      method: req.method,
+      path,
+      headers: req.headers,
+      body
+    });
 
-  res.statusCode = result.status;
-  if (result.status === 204) {
-    res.end();
-    return;
+    res.statusCode = result.status;
+    if (result.status === 204) {
+      res.end();
+      return;
+    }
+
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(result.body ?? {}));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unhandled API failure';
+    console.error(`API route failed for ${path}: ${message}`);
+    res.statusCode = 500;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ error: message }));
   }
-
-  res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify(result.body ?? {}));
 }
 
 async function readJsonBody(req: IncomingMessage) {
