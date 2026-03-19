@@ -123,20 +123,27 @@ export async function fetchNews(
     1. ONLY answer the specific question asked. Do NOT provide the full strategic report structure.
     2. BE CONCISE and TARGETED.
     3. Use Markdown for formatting the answer.
-    4. Still identify 3-5 critical keywords from your answer for the keywords field.
+    4. Prioritize recency, commercial opportunity, relevant stakeholders, and practical talking points where applicable.
+    5. Still identify 3-5 critical keywords from your answer for the keywords field.
   ` : `
     REPORT MODE:
-    Provide a comprehensive strategic intelligence report.
+    Provide a comprehensive strategic intelligence report optimized for account planning.
 
     For EACH selected OpCo (or the main company if no OpCo is selected), structure your analysis with these headings:
 
     # [OpCo Name]
 
-    ## High-Level News & Market Intel
-    ## Top Client Pain Points & Functional Insights
-    ## Stakeholder & Persona Takeaways
-    ## Actionable Pitch Ideas
-    ## Relevant Conferences & Key Timelines
+    ## Recency & Material News
+    Focus on what is most recent, what changed, and why it matters now.
+
+    ## Insights & Opportunities
+    Explain the commercial implications, likely buying signals, urgency, funding paths, or near-term openings.
+
+    ## Key Client Stakeholders
+    Identify the client roles or named stakeholders implicated by the news and why each matters.
+
+    ## Talking Points & Attack Strategy
+    Give specific outreach angles, meeting talking points, objections to anticipate, and next-step actions for the account team.
   `;
 
   const prompt = `

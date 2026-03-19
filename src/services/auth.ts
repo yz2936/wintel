@@ -50,6 +50,7 @@ export async function register(name: string, email: string, password: string): P
   }
 
   const state = await ensureAndLoadUserState(data.user.id);
+  await bootstrapDocketMonitoring();
   return { user: mapUser(data.user), state };
 }
 
@@ -66,6 +67,7 @@ export async function login(email: string, password: string): Promise<{ user: Au
   }
 
   const state = await ensureAndLoadUserState(data.user.id);
+  await bootstrapDocketMonitoring();
   return { user: mapUser(data.user), state };
 }
 
@@ -79,6 +81,7 @@ export async function restoreSession(): Promise<{ user: AuthUser; state: Persist
   try {
     const user = data.session.user;
     const state = await ensureAndLoadUserState(user.id);
+    await bootstrapDocketMonitoring();
     return { user: mapUser(user), state };
   } catch {
     await supabase.auth.signOut({ scope: 'local' });
@@ -197,4 +200,24 @@ function mapUser(user: { id: string; email?: string | null; user_metadata?: Reco
     email: user.email || '',
     lastLoginAt: user.last_sign_in_at || user.updated_at || new Date().toISOString()
   };
+}
+
+async function bootstrapDocketMonitoring() {
+  try {
+    const supabase = await getSupabase();
+    const { data } = await supabase.auth.getSession();
+    const accessToken = data.session?.access_token;
+    if (!accessToken) {
+      return;
+    }
+
+    await fetch('/api/dockets/bootstrap', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+  } catch (error) {
+    console.warn('Failed to bootstrap docket monitoring.', error);
+  }
 }

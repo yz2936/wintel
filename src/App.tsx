@@ -7,10 +7,12 @@ import { fetchFocusSummary, fetchNews, fetchPlanOfAttack, Contact, KeywordInsigh
 import { login, logout, register, restoreSession, saveUserState, AuthUser, PersistedState } from './services/auth';
 import {
   AlertCircle,
+  BriefcaseBusiness,
   RotateCcw,
   ChevronDown,
   ChevronLeft,
   ChevronUp,
+  Clock3,
   Download,
   ExternalLink,
   FileDown,
@@ -20,9 +22,12 @@ import {
   Menu,
   MessageSquare,
   Paperclip,
+  RadioTower,
   Send,
   Sparkles,
+  Target,
   UserPlus,
+  UsersRound,
   WandSparkles,
   X
 } from 'lucide-react';
@@ -40,10 +45,53 @@ const FUNCTIONS = [
 ];
 
 const QUICK_CHAT_TEMPLATES = [
-  { label: 'Top News', build: (company: string) => `What is the top recent news for ${company} that most strongly signals buying intent or a near-term sales opportunity?` },
-  { label: 'Buying Signals', build: (company: string) => `What are the clearest buying signals, budget triggers, and near-term opportunities at ${company}?` },
-  { label: 'Stakeholders', build: (company: string) => `Who are the most relevant stakeholders to approach at ${company}, and why would each care right now?` },
-  { label: 'Pitch Angle', build: (company: string) => `What pitch angle is most likely to resonate with ${company} right now, based on current pressures and priorities?` }
+  {
+    label: 'Recency',
+    detail: 'What changed most recently',
+    icon: Clock3,
+    build: (company: string) => `What is the most recent material news for ${company}, and why does it matter right now for account planning?`
+  },
+  {
+    label: 'Opportunities',
+    detail: 'Commercial openings and signals',
+    icon: BriefcaseBusiness,
+    build: (company: string) => `What insights and near-term commercial opportunities are emerging at ${company} based on the latest developments?`
+  },
+  {
+    label: 'Stakeholders',
+    detail: 'Who is implicated in the news',
+    icon: UsersRound,
+    build: (company: string) => `Which client stakeholders are most relevant to the latest developments at ${company}, and why would each care right now?`
+  },
+  {
+    label: 'Attack Strategy',
+    detail: 'Talking points and next steps',
+    icon: Target,
+    build: (company: string) => `Based on the latest developments at ${company}, what talking points and attack strategy should I use in outreach and meetings?`
+  }
+];
+
+const PRIORITY_TILES = [
+  {
+    title: 'Recency of Affairs',
+    subtitle: 'What changed most recently and what is materially new',
+    icon: Clock3
+  },
+  {
+    title: 'Insights & Opportunities',
+    subtitle: 'Where the buying motion, pressure, and commercial opening live',
+    icon: BriefcaseBusiness
+  },
+  {
+    title: 'Key Client Stakeholders',
+    subtitle: 'Who is implicated in the news and why they matter',
+    icon: UsersRound
+  },
+  {
+    title: 'Talking Points & Attack Strategy',
+    subtitle: 'How to show up with a sharper point of view',
+    icon: Target
+  }
 ];
 
 interface ChatMessage {
@@ -897,14 +945,14 @@ export default function App() {
                               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                 <div>
                                   <div className="mb-2 flex items-center gap-2 text-brand-magenta">
-                                    <Sparkles className="h-3.5 w-3.5" />
-                                    <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Strategic Output</span>
+                                    <RadioTower className="h-3.5 w-3.5" />
+                                    <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Account Planning Brief</span>
                                   </div>
                                   <h3 className="text-lg font-semibold text-brand-navy">
-                                    {message.type === 'report' ? 'Account Intelligence Brief' : 'Plan of Attack'}
+                                    {message.type === 'report' ? 'Recency, opportunity, stakeholder, and attack view' : 'Plan of Attack'}
                                   </h3>
                                   <p className="mt-1 text-xs leading-5 text-neutral-500">
-                                    Structured for stakeholder mapping, buying signals, timing, and next-step preparation.
+                                    Organized around the four account-planning lenses that matter most in live pursuit work.
                                   </p>
                                 </div>
                                 <div className="flex flex-wrap gap-2 print:hidden">
@@ -1049,16 +1097,16 @@ export default function App() {
               </div>
             )}
 
-            <div className="rounded-xl border border-neutral-200 bg-white shadow-[0_14px_36px_rgba(11,0,78,0.06)] overflow-hidden">
+            <div className="overflow-hidden rounded-[1.6rem] border border-neutral-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,243,255,0.96))] shadow-[0_24px_70px_rgba(11,0,78,0.08)]">
               <button
                 type="button"
                 onClick={() => setIsComposerCollapsed((current) => !current)}
-                className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
+                className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
               >
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400">Prompt</p>
-                  <p className="mt-0.5 text-sm font-semibold text-brand-navy">
-                    {isComposerCollapsed ? 'Expand prompt box' : 'Ask Wintel'}
+                  <p className="mt-0.5 text-base font-semibold text-brand-navy">
+                    {isComposerCollapsed ? 'Expand account planning workspace' : 'Shape the next account planning brief'}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1075,6 +1123,22 @@ export default function App() {
                     exit={{ opacity: 0, y: 24 }}
                     transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
                   >
+                  <div className="border-t border-neutral-200/80 bg-[linear-gradient(135deg,rgba(11,0,78,0.02),rgba(255,0,204,0.04))] px-5 py-4">
+                    <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                      {PRIORITY_TILES.map((tile) => {
+                        const Icon = tile.icon;
+                        return (
+                          <div key={tile.title} className="rounded-2xl border border-white/70 bg-white/75 p-3 shadow-sm">
+                            <div className="flex items-center gap-2 text-brand-magenta">
+                              <Icon className="h-3.5 w-3.5" />
+                              <span className="text-[10px] font-bold uppercase tracking-[0.18em]">{tile.title}</span>
+                            </div>
+                            <p className="mt-2 text-xs leading-5 text-neutral-600">{tile.subtitle}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onMouseDown={() => setIsResizingComposer(true)}
@@ -1083,34 +1147,50 @@ export default function App() {
                   >
                     <span className="h-1 w-8 rounded-full bg-current/60" />
                   </button>
-                  <div className="flex flex-wrap gap-1.5 border-b border-neutral-100 px-3 py-2">
+                  <div className="grid gap-2 border-b border-neutral-100 px-5 py-4 md:grid-cols-2 xl:grid-cols-4">
                     {QUICK_CHAT_TEMPLATES.map((template) => {
+                      const Icon = template.icon;
                       return (
                         <button
                           key={template.label}
                           onClick={() => activeCompanyName && setCurrentInput(template.build(activeCompanyName))}
                           disabled={!activeCompanyName}
-                          className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[10px] font-semibold text-neutral-600 transition-colors hover:border-brand-navy hover:bg-brand-navy hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-brand-magenta/40 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          {template.label}
+                          <div className="flex items-center gap-2 text-brand-magenta">
+                            <Icon className="h-4 w-4" />
+                            <span className="text-[11px] font-bold uppercase tracking-[0.18em]">{template.label}</span>
+                          </div>
+                          <p className="mt-2 text-sm font-semibold text-brand-navy">{template.detail}</p>
                         </button>
                       );
                     })}
                   </div>
 
-                  <form onSubmit={(event) => void handleSend(event)} className="px-3 py-2.5">
+                  <form onSubmit={(event) => void handleSend(event)} className="px-5 py-4">
+                    <div className="mb-3 flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">Ask Wintel</p>
+                        <p className="mt-1 text-sm text-neutral-600">
+                          Frame the brief around fresh developments, opportunity creation, stakeholder movement, and attack strategy.
+                        </p>
+                      </div>
+                      <div className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-[10px] font-semibold text-neutral-500">
+                        {currentInput.trim().length} chars
+                      </div>
+                    </div>
                     <textarea
                       value={currentInput}
                       onChange={(event) => setCurrentInput(event.target.value)}
-                      placeholder={selectedCompanyId ? 'Ask for buying signals, executive talking points, stakeholder mapping, objections, or next-step strategy...' : 'Select a company in the sidebar to start the pursuit workspace...'}
+                      placeholder={selectedCompanyId ? 'Example: What is the freshest news, who inside the client is implicated, what opportunity does it create, and what should I say in my first outreach?' : 'Select a company in the sidebar to start the pursuit workspace...'}
                       disabled={!selectedCompanyId}
                       style={{ height: composerHeight }}
-                      className="w-full resize-none border-0 bg-transparent px-0 py-1 text-sm leading-5.5 text-neutral-800 transition-all placeholder:text-neutral-400 focus:outline-none disabled:cursor-not-allowed disabled:text-neutral-400"
+                      className="w-full resize-none rounded-2xl border border-neutral-200 bg-white px-4 py-4 text-sm leading-6 text-neutral-800 shadow-inner transition-all placeholder:text-neutral-400 focus:border-brand-magenta/35 focus:outline-none disabled:cursor-not-allowed disabled:text-neutral-400"
                     />
                     <div className="mt-2 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 text-[10px] text-neutral-500">
                         <span>Drag to resize</span>
-                        <span>{currentInput.trim().length} chars</span>
+                        <span>Best results come from account-planning questions tied to a recent trigger</span>
                       </div>
                       <div className="flex items-center gap-2">
                         {messages.length > 0 && (

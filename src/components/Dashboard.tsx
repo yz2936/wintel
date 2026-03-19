@@ -1,6 +1,6 @@
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ExternalLink, Link2, Clock, Loader2, Sparkles, ArrowUpRight, Radar } from 'lucide-react';
+import { ExternalLink, Link2, Clock, Loader2, Sparkles, ArrowUpRight, Radar, Clock3, BriefcaseBusiness, UsersRound, Target } from 'lucide-react';
 import React, { useState } from 'react';
 import { fetchTimeline, TimelineEvent, KeywordInsight } from '../services/gemini';
 import { Timeline } from './Timeline';
@@ -99,6 +99,8 @@ function OpCoSection({ text, opcoName, functionNames, selectedYear, keywords, gr
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const prioritySections = extractPrioritySections(text);
+  const overflowNarrative = extractOverflowNarrative(text, prioritySections);
 
   const handleGenerateTimeline = async () => {
     setLoading(true);
@@ -139,19 +141,59 @@ function OpCoSection({ text, opcoName, functionNames, selectedYear, keywords, gr
           </div>
         )}
 
-        <div className="prose prose-sm prose-neutral max-w-none prose-headings:font-semibold prose-headings:text-brand-navy prose-a:text-brand-magenta prose-a:no-underline hover:prose-a:underline print:prose-a:text-black">
-        <Markdown 
-          remarkPlugins={[remarkGfm]}
-          components={{
-            strong: ({node, ...props}) => <InteractiveKeyword keywords={keywords} groundingChunks={groundingChunks} {...props} />,
-            h2: ({node, ...props}) => <h2 className="mt-6 mb-3 flex items-center gap-2 border-b border-neutral-200 pb-2 text-brand-navy" {...props} />,
-            ul: ({node, ...props}) => <ul className="space-y-1.5" {...props} />,
-            li: ({node, ...props}) => <li className="leading-6 marker:text-brand-magenta" {...props} />
-          }}
-        >
-          {text.replace('[TIMELINE_PLACEHOLDER]', '')}
-        </Markdown>
-      </div>
+        <div className="grid gap-3 lg:grid-cols-2">
+          {prioritySections.map((section) => {
+            const Icon = section.icon;
+            return (
+              <div key={`${opcoName}-${section.key}`} className="overflow-hidden rounded-2xl border border-neutral-200 bg-[linear-gradient(180deg,#ffffff_0%,#faf7ff_100%)] shadow-sm">
+                <div className="border-b border-neutral-200 px-4 py-3">
+                  <div className="flex items-center gap-2 text-brand-magenta">
+                    <Icon className="h-4 w-4" />
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em]">{section.title}</span>
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-neutral-500">{section.subtitle}</p>
+                </div>
+                <div className="px-4 py-4">
+                  {section.body ? (
+                    <div className="prose prose-sm prose-neutral max-w-none prose-headings:font-semibold prose-headings:text-brand-navy prose-a:text-brand-magenta prose-a:no-underline hover:prose-a:underline print:prose-a:text-black">
+                      <Markdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          strong: ({node, ...props}) => <InteractiveKeyword keywords={keywords} groundingChunks={groundingChunks} {...props} />,
+                          ul: ({node, ...props}) => <ul className="space-y-1.5" {...props} />,
+                          li: ({node, ...props}) => <li className="leading-6 marker:text-brand-magenta" {...props} />
+                        }}
+                      >
+                        {section.body}
+                      </Markdown>
+                    </div>
+                  ) : (
+                    <p className="text-sm leading-6 text-neutral-500">No material was generated for this lens in the current brief.</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {overflowNarrative && (
+          <div className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-brand-magenta" />
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400">Supplementary Narrative</p>
+            </div>
+            <div className="prose prose-sm prose-neutral max-w-none prose-headings:font-semibold prose-headings:text-brand-navy prose-a:text-brand-magenta prose-a:no-underline hover:prose-a:underline print:prose-a:text-black">
+              <Markdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  strong: ({node, ...props}) => <InteractiveKeyword keywords={keywords} groundingChunks={groundingChunks} {...props} />
+                }}
+              >
+                {overflowNarrative}
+              </Markdown>
+            </div>
+          </div>
+        )}
       </div>
       
       {!timelineEvents && !loading && (
@@ -288,4 +330,89 @@ function stripKeywordsSection(text: string) {
     .replace(/^#\s+Keywords\s*$[\s\S]*?(?=^#\s+|\Z)/gim, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+const PRIORITY_CONFIG = [
+  {
+    key: 'recency',
+    title: 'Recency & Material News',
+    subtitle: 'What changed recently and what now matters most',
+    icon: Clock3,
+    aliases: ['recency', 'material news', 'high-level news', 'market intel', 'news']
+  },
+  {
+    key: 'opportunities',
+    title: 'Insights & Opportunities',
+    subtitle: 'Commercial implications, buying motion, and openings',
+    icon: BriefcaseBusiness,
+    aliases: ['insights', 'opportunities', 'pain points', 'functional insights', 'buying signals', 'actionable pitch']
+  },
+  {
+    key: 'stakeholders',
+    title: 'Key Client Stakeholders',
+    subtitle: 'Who is involved and why they matter now',
+    icon: UsersRound,
+    aliases: ['stakeholders', 'stakeholder', 'persona takeaways', 'client stakeholders']
+  },
+  {
+    key: 'attack',
+    title: 'Talking Points & Attack Strategy',
+    subtitle: 'How to engage, what to say, and next-step motions',
+    icon: Target,
+    aliases: ['attack strategy', 'talking points', 'plan of attack', 'pitch ideas', 'outreach']
+  }
+] as const;
+
+function extractPrioritySections(text: string) {
+  const cleaned = text.replace('[TIMELINE_PLACEHOLDER]', '').trim();
+  const narrative = cleaned.replace(/^#\s+.+$/m, '').trim();
+  const rawSections = splitMarkdownSections(narrative);
+
+  return PRIORITY_CONFIG.map((config) => {
+    const match = rawSections.find((section) => {
+      const heading = section.heading.toLowerCase();
+      return config.aliases.some((alias) => heading.includes(alias));
+    });
+
+    return {
+      ...config,
+      body: match?.body?.trim() || ''
+    };
+  });
+}
+
+function extractOverflowNarrative(text: string, prioritySections: Array<{ body: string }>) {
+  const cleaned = text.replace('[TIMELINE_PLACEHOLDER]', '').trim();
+  const narrative = cleaned.replace(/^#\s+.+$/m, '').trim();
+  const strippedBodies = prioritySections
+    .map((section) => section.body.trim())
+    .filter(Boolean);
+
+  let overflow = narrative;
+  for (const body of strippedBodies) {
+    overflow = overflow.replace(body, '');
+  }
+
+  overflow = overflow
+    .replace(/^##\s+.+$/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  return overflow;
+}
+
+function splitMarkdownSections(text: string) {
+  const matches = [...text.matchAll(/^##\s+(.+)$/gm)];
+  if (matches.length === 0) {
+    return [];
+  }
+
+  return matches.map((match, index) => {
+    const heading = match[1].trim();
+    const start = match.index ?? 0;
+    const bodyStart = start + match[0].length;
+    const end = index + 1 < matches.length ? (matches[index + 1].index ?? text.length) : text.length;
+    const body = text.slice(bodyStart, end).trim();
+    return { heading, body };
+  });
 }
