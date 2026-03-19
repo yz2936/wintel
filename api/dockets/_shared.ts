@@ -70,6 +70,7 @@ type WatchTargetStatus = {
   summary_text: string | null;
   last_checked_at: string | null;
   docket_numbers: string[];
+  latest_payload: Record<string, unknown> | null;
 };
 
 type ExtractorType = 'ny_case_filings' | 'ma_account_listing' | 'page_text_change';
@@ -418,7 +419,8 @@ export async function listRecentEventsForUser(userId: string) {
         source_url: target.source_url,
         summary_text: snapshot?.summary_text || null,
         last_checked_at: snapshot?.fetched_at || null,
-        docket_numbers: target.docket_numbers
+        docket_numbers: target.docket_numbers,
+        latest_payload: snapshot?.payload || null
       } satisfies WatchTargetStatus;
     }),
     events: (events.data ?? []) as WatchEventRow[]
@@ -587,6 +589,20 @@ async function syncSingleTarget(admin: SupabaseClient, subscription: WatchSubscr
   }
 
   if (previous.data.snapshot_hash === parsed.snapshotHash) {
+    const refreshed = await admin
+      .from('docket_watch_snapshots')
+      .update({
+        summary_text: parsed.summaryText,
+        payload: parsed.payload,
+        fetched_at: new Date().toISOString()
+      })
+      .eq('target_id', target.id)
+      .eq('snapshot_hash', parsed.snapshotHash);
+
+    if (refreshed.error) {
+      throw new Error(refreshed.error.message);
+    }
+
     return null;
   }
 
@@ -649,6 +665,19 @@ async function enrichParsedSourceWithAgentSummary(target: WatchTargetRow, parsed
   const fallbackSummary = parsed.summaryText;
 
   try {
+    if (target.extractor_type === 'ny_case_filings') {
+      const intelligence = await buildNyDocketIntelligence(target, parsed);
+      return {
+        ...parsed,
+        summaryText: intelligence.summaryText || fallbackSummary,
+        payload: {
+          ...parsed.payload,
+          documents: intelligence.documents,
+          fallbackSummary
+        }
+      };
+    }
+
     const summaryText = await summarizeDocketSnapshot(target, parsed);
     return {
       ...parsed,
@@ -662,6 +691,65 @@ async function enrichParsedSourceWithAgentSummary(target: WatchTargetRow, parsed
     console.warn(`Docket AI summary failed for ${target.source_key}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return parsed;
   }
+}
+
+async function buildNyDocketIntelligence(target: WatchTargetRow, parsed: ParsedSource) {
+  const apiKey = process.env.OPENAI_API_KEY || '';
+  if (!apiKey) {
+    return {
+      summaryText: parsed.summaryText,
+      documents: [] as Array<Record<string, unknown>>
+    };
+  }
+
+  const caseNumber = String(parsed.payload.caseNumber || target.docket_numbers[0] || target.display_name);
+  const result = await requestStructured<{
+    summaryText: string;
+    documents: Array<{
+      title: string;
+      filedDate: string;
+      documentType: string;
+      filingOnBehalfOf: string;
+      officialUrl: string;
+      summary: string;
+      keyTopics: string[];
+      stakeholders: string[];
+      accountPlanningAngle: string;
+    }>;
+  }>({
+    input: `
+You are monitoring an official New York DPS rate case docket for account planning.
+
+Use web search to find the latest five official docket documents or matter filing items for this exact case.
+Only use official NY DPS links on documents.dps.ny.gov.
+
+TARGET CASE:
+- Account: ${target.account_name}
+- Utility type: ${target.utility_type}
+- Case number: ${caseNumber}
+- Official case page: ${target.source_url}
+- Fallback docket snapshot: ${JSON.stringify(parsed.payload, null, 2)}
+
+Return:
+- summaryText: a concise business summary in 3 short bullet points covering latest docket movement, likely commercial/stakeholder implications, and a practical outreach angle
+- documents: up to 5 latest official documents with title, filedDate, documentType, filingOnBehalfOf, officialUrl, summary, keyTopics, stakeholders, accountPlanningAngle
+
+Rules:
+- Prefer filing-item pages or direct document pages for this exact case number
+- Do not include unofficial sources
+- If some fields are unavailable, return an empty string for that field
+- Stakeholders should be named people or roles implicated by the filing when visible; otherwise use likely client roles
+- Keep each document summary tight and account-planning oriented
+    `.trim(),
+    schemaName: 'wintel_docket_document_summary',
+    schema: docketDocumentSchema,
+    useWebSearch: true
+  });
+
+  return {
+    summaryText: result.summaryText || parsed.summaryText,
+    documents: result.documents || []
+  };
 }
 
 function parseNyCaseFilings(target: WatchTargetRow, html: string): ParsedSource {
@@ -1134,6 +1222,29 @@ async function requestOpenAI(body: Record<string, unknown>) {
   return response.json();
 }
 
+async function requestStructured<T>({ input, schemaName, schema, useWebSearch }: { input: string; schemaName: string; schema: object; useWebSearch?: boolean }): Promise<T> {
+  const payload = await requestOpenAI({
+    model: DEFAULT_MODEL,
+    input,
+    ...(useWebSearch ? { tools: [{ type: 'web_search' }] } : {}),
+    text: {
+      format: {
+        type: 'json_schema',
+        name: schemaName,
+        strict: true,
+        schema
+      }
+    }
+  });
+
+  const text = sanitizeModelText(extractOutputText(payload)).trim();
+  if (!text) {
+    throw new Error('OpenAI returned an empty structured response.');
+  }
+
+  return JSON.parse(text) as T;
+}
+
 function extractOutputText(payload: any) {
   if (typeof payload.output_text === 'string' && payload.output_text.trim()) {
     return payload.output_text;
@@ -1159,3 +1270,37 @@ function sanitizeModelText(text: string) {
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
+
+const docketDocumentSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    summaryText: { type: 'string' },
+    documents: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          title: { type: 'string' },
+          filedDate: { type: 'string' },
+          documentType: { type: 'string' },
+          filingOnBehalfOf: { type: 'string' },
+          officialUrl: { type: 'string' },
+          summary: { type: 'string' },
+          keyTopics: {
+            type: 'array',
+            items: { type: 'string' }
+          },
+          stakeholders: {
+            type: 'array',
+            items: { type: 'string' }
+          },
+          accountPlanningAngle: { type: 'string' }
+        },
+        required: ['title', 'filedDate', 'documentType', 'filingOnBehalfOf', 'officialUrl', 'summary', 'keyTopics', 'stakeholders', 'accountPlanningAngle']
+      }
+    }
+  },
+  required: ['summaryText', 'documents']
+} as const;

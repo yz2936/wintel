@@ -365,6 +365,34 @@ function buildLocalFocusSummary(input: {
   return `Focus is on ${input.companyName}, specifically ${opcoText}, using ${functionText} and ${timelineText} through a ${personaText} lens.${promptText}`;
 }
 
+function getDocketDocuments(payload: Record<string, unknown> | null) {
+  const documents = payload?.documents;
+  if (!Array.isArray(documents)) {
+    return [];
+  }
+
+  return documents
+    .map((document) => {
+      if (!document || typeof document !== 'object') {
+        return null;
+      }
+
+      const entry = document as Record<string, unknown>;
+      return {
+        title: typeof entry.title === 'string' ? entry.title : 'Untitled docket document',
+        filedDate: typeof entry.filedDate === 'string' ? entry.filedDate : '',
+        documentType: typeof entry.documentType === 'string' ? entry.documentType : '',
+        filingOnBehalfOf: typeof entry.filingOnBehalfOf === 'string' ? entry.filingOnBehalfOf : '',
+        officialUrl: typeof entry.officialUrl === 'string' ? entry.officialUrl : '',
+        summary: typeof entry.summary === 'string' ? entry.summary : '',
+        keyTopics: Array.isArray(entry.keyTopics) ? entry.keyTopics.filter((item): item is string => typeof item === 'string') : [],
+        stakeholders: Array.isArray(entry.stakeholders) ? entry.stakeholders.filter((item): item is string => typeof item === 'string') : [],
+        accountPlanningAngle: typeof entry.accountPlanningAngle === 'string' ? entry.accountPlanningAngle : ''
+      };
+    })
+    .filter((document): document is NonNullable<typeof document> => Boolean(document));
+}
+
 export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [authSubmitting, setAuthSubmitting] = useState(false);
@@ -1005,23 +1033,76 @@ export default function App() {
                           </div>
                           <div className="grid gap-3 md:grid-cols-2">
                             {docketTargets.map((target) => (
-                              <a
+                              <div
                                 key={target.id}
-                                href={target.source_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
                                 className="group rounded-2xl border border-neutral-200 bg-white px-4 py-3 transition-all hover:-translate-y-0.5 hover:border-brand-magenta/35 hover:shadow-md"
                               >
                                 <div className="flex items-center justify-between gap-3">
                                   <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-magenta">
                                     {target.state} {target.utility_type}
                                   </span>
-                                  <ExternalLink className="h-3.5 w-3.5 text-neutral-400 transition-colors group-hover:text-brand-magenta" />
+                                  <a
+                                    href={target.source_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 text-neutral-400 transition-colors hover:border-brand-magenta/35 hover:text-brand-magenta"
+                                    title="Open official docket page"
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                  </a>
                                 </div>
                                 <h4 className="mt-2 text-sm font-semibold leading-6 text-brand-navy">{target.display_name}</h4>
                                 <p className="mt-2 text-sm leading-6 text-neutral-600">
                                   {target.summary_text || 'No snapshot has been stored yet. Run a docket check to fetch the latest official summary.'}
                                 </p>
+                                {getDocketDocuments(target.latest_payload).length > 0 && (
+                                  <div className="mt-3 space-y-3 border-t border-neutral-100 pt-3">
+                                    {getDocketDocuments(target.latest_payload).slice(0, 5).map((document, index) => (
+                                      <div key={`${target.id}-document-${index}`} className="rounded-xl border border-neutral-200 bg-neutral-50/70 px-3 py-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                          <div>
+                                            <p className="text-xs font-semibold text-brand-navy">{document.title}</p>
+                                            <p className="mt-1 text-[11px] text-neutral-500">
+                                              {[document.filedDate, document.documentType, document.filingOnBehalfOf].filter(Boolean).join(' | ') || 'Official docket document'}
+                                            </p>
+                                          </div>
+                                          {document.officialUrl && (
+                                            <a
+                                              href={document.officialUrl}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="rounded-full border border-neutral-200 bg-white px-2 py-1 text-[10px] font-semibold text-neutral-500 transition-colors hover:border-brand-magenta/35 hover:text-brand-magenta"
+                                            >
+                                              Open doc
+                                            </a>
+                                          )}
+                                        </div>
+                                        {document.summary && (
+                                          <p className="mt-2 text-xs leading-5 text-neutral-600">{document.summary}</p>
+                                        )}
+                                        {document.keyTopics.length > 0 && (
+                                          <div className="mt-2 flex flex-wrap gap-1.5">
+                                            {document.keyTopics.map((topic) => (
+                                              <span key={`${target.id}-${document.title}-${topic}`} className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-neutral-600">
+                                                {topic}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        )}
+                                        {document.stakeholders.length > 0 && (
+                                          <p className="mt-2 text-[11px] leading-5 text-neutral-600">
+                                            <span className="font-semibold text-brand-navy">Stakeholders:</span> {document.stakeholders.join(', ')}
+                                          </p>
+                                        )}
+                                        {document.accountPlanningAngle && (
+                                          <p className="mt-2 text-[11px] leading-5 text-neutral-600">
+                                            <span className="font-semibold text-brand-navy">Account angle:</span> {document.accountPlanningAngle}
+                                          </p>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                                 <div className="mt-3 flex flex-wrap gap-2">
                                   {target.docket_numbers.map((docketNumber) => (
                                     <span
@@ -1035,7 +1116,7 @@ export default function App() {
                                 <p className="mt-3 text-xs text-neutral-400">
                                   {target.last_checked_at ? `Last checked ${format(new Date(target.last_checked_at), 'MMM d, yyyy h:mm a')}` : 'Not checked yet'}
                                 </p>
-                              </a>
+                              </div>
                             ))}
                           </div>
                         </div>

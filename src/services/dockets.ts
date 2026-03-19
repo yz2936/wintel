@@ -29,6 +29,7 @@ export type DocketWatchTarget = {
   summary_text: string | null;
   last_checked_at: string | null;
   docket_numbers: string[];
+  latest_payload: Record<string, unknown> | null;
 };
 
 export type DocketWatchEventsResponse = {
