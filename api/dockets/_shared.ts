@@ -1,6 +1,9 @@
 import { createHash } from 'node:crypto';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
+const OPENAI_API_URL = 'https://api.openai.com/v1/responses';
+const DEFAULT_MODEL = process.env.OPENAI_MODEL || 'gpt-5.2-chat-latest';
+
 type AuthenticatedUser = {
   id: string;
   email?: string | null;
@@ -552,7 +555,7 @@ export async function syncDocketWatches(options?: { forceSend?: boolean; userId?
 
 async function syncSingleTarget(admin: SupabaseClient, subscription: WatchSubscriptionRow, target: WatchTargetRow) {
   const html = await fetchHtml(target.source_url);
-  const parsed = parseSource(target, html);
+  const parsed = await enrichParsedSourceWithAgentSummary(target, parseSource(target, html));
   const previous = await admin
     .from('docket_watch_snapshots')
     .select('snapshot_hash, summary_text, payload, fetched_at')
@@ -639,6 +642,25 @@ function parseSource(target: WatchTargetRow, html: string): ParsedSource {
       return parsePageTextChange(target, html);
     default:
       return parsePageTextChange(target, html);
+  }
+}
+
+async function enrichParsedSourceWithAgentSummary(target: WatchTargetRow, parsed: ParsedSource) {
+  const fallbackSummary = parsed.summaryText;
+
+  try {
+    const summaryText = await summarizeDocketSnapshot(target, parsed);
+    return {
+      ...parsed,
+      summaryText: summaryText || fallbackSummary,
+      payload: {
+        ...parsed.payload,
+        fallbackSummary
+      }
+    };
+  } catch (error) {
+    console.warn(`Docket AI summary failed for ${target.source_key}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return parsed;
   }
 }
 
@@ -729,7 +751,7 @@ function buildEventFromDiff(target: WatchTargetRow, previous: SnapshotRow, next:
         sourceEventKey: `${target.source_key}:filed-documents:${nextCount}`,
         eventType: 'rate_case_filing_change',
         title: `${target.account_name} ${target.utility_type} docket ${caseNumber} added ${nextCount - previousCount} filing${nextCount - previousCount === 1 ? '' : 's'}`,
-        summary: `${target.display_name} moved from ${previousCount} to ${nextCount} filed documents on the official ${target.provider} case page. This is the clearest signal that the docket had fresh activity in the latest monitoring window.`,
+        summary: `${target.display_name} moved from ${previousCount} to ${nextCount} filed documents on the official ${target.provider} case page. ${next.summaryText}`,
         eventDate: new Date().toISOString(),
         payload: {
           previousFiledDocuments: previousCount,
@@ -747,7 +769,7 @@ function buildEventFromDiff(target: WatchTargetRow, previous: SnapshotRow, next:
         sourceEventKey: `${target.source_key}:public-comments:${nextComments}`,
         eventType: 'rate_case_comment_change',
         title: `${target.account_name} docket ${caseNumber} received new public comment activity`,
-        summary: `${target.display_name} moved from ${previousComments} to ${nextComments} public comments on the official ${target.provider} case page.`,
+        summary: `${target.display_name} moved from ${previousComments} to ${nextComments} public comments on the official ${target.provider} case page. ${next.summaryText}`,
         eventDate: new Date().toISOString(),
         payload: {
           previousPublicComments: previousComments,
@@ -771,7 +793,7 @@ function buildEventFromDiff(target: WatchTargetRow, previous: SnapshotRow, next:
         sourceEventKey: `${target.source_key}:new-dockets:${newDockets.join(',')}`,
         eventType: 'rate_case_filing_change',
         title: `${target.account_name} ${target.utility_type} docket listing changed in Massachusetts`,
-        summary: `${target.display_name} now references new docket number${newDockets.length === 1 ? '' : 's'} ${newDockets.join(', ')} on the official ${target.provider} listing page.`,
+        summary: `${target.display_name} now references new docket number${newDockets.length === 1 ? '' : 's'} ${newDockets.join(', ')} on the official ${target.provider} listing page. ${next.summaryText}`,
         eventDate: new Date().toISOString(),
         payload: {
           previousDockets,
@@ -786,7 +808,7 @@ function buildEventFromDiff(target: WatchTargetRow, previous: SnapshotRow, next:
         sourceEventKey: `${target.source_key}:page-refresh:${next.snapshotHash}`,
         eventType: 'rate_case_page_update',
         title: `${target.account_name} ${target.utility_type} rate case listing updated in Massachusetts`,
-        summary: `${target.display_name} changed on the official ${target.provider} listing page. Review the updated listing for new status language or refreshed references.`,
+        summary: `${target.display_name} changed on the official ${target.provider} listing page. ${next.summaryText}`,
         eventDate: new Date().toISOString(),
         payload: {
           previousDockets,
@@ -803,10 +825,56 @@ function buildEventFromDiff(target: WatchTargetRow, previous: SnapshotRow, next:
     sourceEventKey: `${target.source_key}:page-update:${next.snapshotHash}`,
     eventType: 'rate_case_page_update',
     title: `${target.display_name} was updated`,
-    summary: `${target.display_name} changed on the official ${target.provider} page, which suggests new docket activity, hearing logistics, or updated procedural guidance.`,
+    summary: `${target.display_name} changed on the official ${target.provider} page. ${next.summaryText}`,
     eventDate: new Date().toISOString(),
     payload: next.payload
   };
+}
+
+async function summarizeDocketSnapshot(target: WatchTargetRow, parsed: ParsedSource) {
+  const apiKey = process.env.OPENAI_API_KEY || '';
+  if (!apiKey) {
+    return parsed.summaryText;
+  }
+
+  const prompt = `
+You are supporting enterprise account planning and development for utility-sector sales work.
+
+Summarize the latest official docket snapshot from the account-planning perspective.
+
+TARGET:
+- Account: ${target.account_name}
+- Utility type: ${target.utility_type}
+- State: ${target.state}
+- Docket label: ${target.display_name}
+- Provider: ${target.provider}
+- Source URL: ${target.source_url}
+
+LATEST OFFICIAL SNAPSHOT:
+${JSON.stringify(parsed.payload, null, 2)}
+
+FALLBACK SUMMARY:
+${parsed.summaryText}
+
+Write exactly 3 short bullet points:
+1. What the latest docket information appears to say right now
+2. Why it matters commercially or strategically for account planning
+3. What outreach or stakeholder angle the account team should consider next
+
+Rules:
+- Use plain business language
+- Stay grounded only in the supplied snapshot
+- Do not invent missing facts
+- Keep the total response under 110 words
+  `.trim();
+
+  const payload = await requestOpenAI({
+    model: DEFAULT_MODEL,
+    input: prompt
+  });
+
+  const text = sanitizeModelText(extractOutputText(payload)).trim();
+  return text || parsed.summaryText;
 }
 
 async function sendWeeklyDigestEmail(subscription: WatchSubscriptionRow, events: WatchEventRow[]) {
@@ -1042,4 +1110,52 @@ function escapeHtml(value: string) {
 
 function escapeAttribute(value: string) {
   return escapeHtml(value);
+}
+
+async function requestOpenAI(body: Record<string, unknown>) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('Missing OPENAI_API_KEY in Vercel environment variables.');
+  }
+
+  const response = await fetch(OPENAI_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    throw new Error(`OpenAI request failed (${response.status}): ${await response.text()}`);
+  }
+
+  return response.json();
+}
+
+function extractOutputText(payload: any) {
+  if (typeof payload.output_text === 'string' && payload.output_text.trim()) {
+    return payload.output_text;
+  }
+
+  const parts: string[] = [];
+  for (const item of payload.output || []) {
+    for (const content of item.content || []) {
+      if ((content.type === 'output_text' || content.type === 'text') && typeof content.text === 'string') {
+        parts.push(content.text);
+      }
+    }
+  }
+
+  return parts.join('\n').trim();
+}
+
+function sanitizeModelText(text: string) {
+  return text
+    .replace(/cite[^]+/g, '')
+    .replace(/\[\^\d+\]/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }

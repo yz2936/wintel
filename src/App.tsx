@@ -958,7 +958,7 @@ export default function App() {
                             <BellRing className="h-4 w-4" />
                             <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Docket Watch</span>
                           </div>
-                          <h3 className="mt-2 text-base font-semibold text-brand-navy">Monitor official filing changes without leaving the workspace</h3>
+                          <h3 className="mt-2 text-base font-semibold text-brand-navy">Monitor and summarize official docket changes without leaving the workspace</h3>
                           <p className="mt-1 text-sm leading-6 text-neutral-600">
                             {docketLoading ? 'Loading watch status...' : docketStatus}
                           </p>
