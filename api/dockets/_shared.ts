@@ -291,7 +291,7 @@ export async function bootstrapDefaultWatchlist(user: AuthenticatedUser) {
     match_terms: target.matchTerms,
     docket_numbers: target.docketNumbers,
     metadata: target.metadata || {},
-    is_active: true,
+    is_active: target.state === 'NY',
     updated_at: now
   }));
 
@@ -309,8 +309,9 @@ export async function bootstrapDefaultWatchlist(user: AuthenticatedUser) {
     frequency: upsertSubscription.data.frequency,
     targetCount: targets.length,
     notes: [
-      'National Grid is monitored in New York and Massachusetts.',
-      'Eversource is monitored in Massachusetts. No New York Eversource utility docket footprint is seeded in this v1.'
+      'National Grid New York dockets are active in the weekly digest by default.',
+      'Massachusetts National Grid and Eversource targets are seeded but currently inactive because the public mass.gov pages are blocking serverless polling.',
+      'No New York Eversource utility docket footprint is seeded in this v1.'
     ]
   };
 }

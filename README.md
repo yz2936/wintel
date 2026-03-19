@@ -71,6 +71,8 @@ The current v1 assumptions are:
 - email digest delivery only
 - weekly polling via Vercel Cron at Monday 13:00 UTC
 - focus on new rate case filing changes and official docket page updates
+- National Grid New York docket targets are active by default
+- Massachusetts National Grid and Eversource targets are seeded but inactive because `mass.gov` is currently returning `403` to serverless fetches
 - Eversource does not have a New York utility docket target seeded by default
 
 Relevant endpoints:
