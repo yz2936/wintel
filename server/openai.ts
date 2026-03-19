@@ -149,6 +149,13 @@ export async function fetchNews(
     ${personaContext}
     ${modeContext}
 
+    SOURCE QUALITY RULES:
+    1. Prioritize professional and primary sources only: government websites, regulators, utilities commissions, ISO/RTO sites, company press releases, SEC filings, investor relations pages, earnings materials, major business press, and reputable industry/trade publications.
+    2. Prefer official documents and direct company or government sources over commentary whenever possible.
+    3. Avoid Reddit, social media, forums, low-credibility blogs, SEO content farms, and user-generated discussion sites unless no higher-quality source exists.
+    4. If a weaker source is the only source available for a claim, either omit the claim or clearly favor better-supported claims instead.
+    5. For regulatory, permitting, infrastructure, utility, or public funding topics, prefer federal, state, commission, grid operator, or company primary-source material.
+
     PRESENTATION RULES:
     1. DO NOT include a standalone section titled "Keywords", "Key Terms", or anything similar.
     2. DO NOT add a separate keyword appendix, glossary, or source list inside the main markdown body.
@@ -156,11 +163,11 @@ export async function fetchNews(
 
     KEYWORD EXTRACTION:
     Identify 3-5 critical strategic terms or technical concepts from your response and wrap them in **double asterisks**.
-    For each keyword provide the exact term, a concise summary, and a direct source URL if you found one through web search. If you did not find a direct URL, return an empty string.
+    For each keyword provide the exact term, a concise summary, and a direct source URL from a professional or primary source if you found one through web search. If you did not find a credible direct URL, return an empty string.
 
     CONTACT IDENTIFICATION:
     Identify 2-3 real decision makers or relevant sales contacts for the selected OpCos.
-    Provide LinkedIn profile URLs or a high-quality search URL if the exact profile is unavailable.
+    Prefer company leadership pages, investor relations governance pages, official bios, or LinkedIn profile URLs. Do not use Reddit, forums, or low-quality people-search sources.
   `;
 
   const parsed = await requestStructured<NewsResponse>({
