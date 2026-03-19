@@ -395,7 +395,7 @@ export async function syncDocketWatches(options?: { forceSend?: boolean }) {
   for (const subscription of (subscriptions.data ?? []) as WatchSubscriptionRow[]) {
     const createdForSubscription: WatchEventRow[] = [];
 
-    for (const target of subscription.docket_watch_targets.filter((item) => item.is_active)) {
+    for (const target of subscription.docket_watch_targets.filter((item) => item.is_active && item.state === 'NY')) {
       scannedTargets += 1;
       try {
         const event = await syncSingleTarget(admin, subscription, target);
