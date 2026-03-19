@@ -1,5 +1,5 @@
 import { fetchFocusSummary, fetchNews, fetchPlanOfAttack, fetchTimeline } from './openai';
-import { getServerSupabase } from './supabase';
+import { getUserFromAccessToken } from './supabase';
 
 export type ApiResult = {
   status: number;
@@ -84,13 +84,22 @@ async function requireUser(headers?: Record<string, string | string[] | undefine
     throw new Error('UNAUTHORIZED');
   }
 
-  const supabase = getServerSupabase();
-  const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data.user) {
+  let user: any;
+  try {
+    user = await getUserFromAccessToken(token);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes('(401)') || message.includes('(403)')) {
+      throw new Error('UNAUTHORIZED');
+    }
+    throw error;
+  }
+
+  if (!user?.id) {
     throw new Error('UNAUTHORIZED');
   }
 
-  return { user: data.user };
+  return { user };
 }
 
 function getBearerToken(authorization?: string | string[]) {
