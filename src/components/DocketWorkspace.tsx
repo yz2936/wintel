@@ -1,6 +1,8 @@
 import { format } from 'date-fns';
 import { AlertCircle, BellRing, ExternalLink, Loader2, RadioTower, RefreshCw, Send, X } from 'lucide-react';
 import { useState } from 'react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { DocketWatchEvent, DocketWatchSubscription, DocketWatchTarget, UtilityFilter } from '../services/dockets';
 
 type DocketChatMessage = {
@@ -410,11 +412,29 @@ export function DocketWorkspace({
                         key={`${message.role}-${index}-${message.timestamp.toISOString()}`}
                         className={message.role === 'user' ? 'flex justify-end' : 'flex justify-start'}
                       >
-                        <div className={`${message.role === 'user' ? 'max-w-[90%] rounded-2xl rounded-tr-sm bg-brand-navy px-4 py-3 text-white' : 'w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-neutral-700'}`}>
+                        <div className={`${message.role === 'user' ? 'max-w-[90%] rounded-2xl rounded-tr-sm bg-brand-navy px-4 py-3 text-white' : 'w-full overflow-x-auto rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-neutral-700'}`}>
                           <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] opacity-60">
                             {message.role === 'user' ? 'Your Question' : 'Docket Agent'}
                           </div>
-                          <div className="whitespace-pre-wrap break-words text-sm leading-6">{message.content}</div>
+                          {message.role === 'user' ? (
+                            <div className="whitespace-pre-wrap break-words text-sm leading-6">{message.content}</div>
+                          ) : (
+                            <div className="prose prose-sm max-w-none prose-neutral prose-headings:text-brand-navy prose-strong:text-brand-navy prose-table:block prose-table:w-full prose-th:text-left prose-td:align-top prose-a:text-brand-magenta hover:prose-a:underline">
+                              <Markdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                  table: ({ node, ...props }) => <table className="w-full border-collapse text-xs sm:text-sm" {...props} />,
+                                  thead: ({ node, ...props }) => <thead className="bg-white/80" {...props} />,
+                                  th: ({ node, ...props }) => <th className="border border-neutral-200 px-2 py-2 font-semibold text-brand-navy" {...props} />,
+                                  td: ({ node, ...props }) => <td className="border border-neutral-200 px-2 py-2 align-top" {...props} />,
+                                  ul: ({ node, ...props }) => <ul className="space-y-1.5" {...props} />,
+                                  li: ({ node, ...props }) => <li className="leading-6" {...props} />
+                                }}
+                              >
+                                {message.content}
+                              </Markdown>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
