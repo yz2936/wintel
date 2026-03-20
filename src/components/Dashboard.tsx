@@ -370,13 +370,13 @@ function extractPrioritySections(text: string) {
 
   return PRIORITY_CONFIG.map((config) => {
     const match = rawSections.find((section) => {
-      const heading = section.heading.toLowerCase();
+      const heading = normalizeHeading(section.heading);
       return config.aliases.some((alias) => heading.includes(alias));
     });
 
     return {
       ...config,
-      body: match?.body?.trim() || ''
+      body: match?.body?.trim() || extractFallbackSectionBody(narrative, config.aliases)
     };
   });
 }
@@ -394,7 +394,7 @@ function extractOverflowNarrative(text: string, prioritySections: Array<{ body: 
   }
 
   overflow = overflow
-    .replace(/^##\s+.+$/gm, '')
+    .replace(/^#{2,4}\s+.+$/gm, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
@@ -402,7 +402,7 @@ function extractOverflowNarrative(text: string, prioritySections: Array<{ body: 
 }
 
 function splitMarkdownSections(text: string) {
-  const matches = [...text.matchAll(/^##\s+(.+)$/gm)];
+  const matches = [...text.matchAll(/^#{2,4}\s+(.+)$/gm)];
   if (matches.length === 0) {
     return [];
   }
@@ -415,4 +415,47 @@ function splitMarkdownSections(text: string) {
     const body = text.slice(bodyStart, end).trim();
     return { heading, body };
   });
+}
+
+function normalizeHeading(heading: string) {
+  return heading
+    .toLowerCase()
+    .replace(/^[\d.\-)\s]+/, '')
+    .replace(/[*_`:#]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractFallbackSectionBody(text: string, aliases: readonly string[]) {
+  const lines = text.split('\n');
+  const sections: Array<{ heading: string; body: string[] }> = [];
+  let current: { heading: string; body: string[] } | null = null;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      if (current) {
+        current.body.push('');
+      }
+      continue;
+    }
+
+    const normalized = normalizeHeading(line);
+    const looksLikeHeading =
+      aliases.some((alias) => normalized.includes(alias)) ||
+      PRIORITY_CONFIG.some((config) => config.aliases.some((alias) => normalized.includes(alias)));
+
+    if (looksLikeHeading) {
+      current = { heading: normalized, body: [] };
+      sections.push(current);
+      continue;
+    }
+
+    if (current) {
+      current.body.push(rawLine);
+    }
+  }
+
+  const match = sections.find((section) => aliases.some((alias) => section.heading.includes(alias)));
+  return match ? match.body.join('\n').trim() : '';
 }
