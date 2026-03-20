@@ -37,6 +37,27 @@ function getDocketDocuments(payload: Record<string, unknown> | null) {
     .filter((document): document is NonNullable<typeof document> => Boolean(document));
 }
 
+function toBulletPoints(text: string | null | undefined) {
+  if (!text) {
+    return [];
+  }
+
+  const normalized = text
+    .split('\n')
+    .map((line) => line.replace(/^[-*•]\s*/, '').trim())
+    .filter(Boolean);
+
+  if (normalized.length > 1) {
+    return normalized;
+  }
+
+  return text
+    .split(/(?<=\.)\s+(?=[A-Z0-9-])/)
+    .map((line) => line.replace(/^[-*•]\s*/, '').trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
 interface DocketWorkspaceProps {
   subscription: DocketWatchSubscription | null;
   targets: DocketWatchTarget[];
@@ -121,7 +142,7 @@ export function DocketWorkspace({
         )}
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_360px]">
         <div className="space-y-5">
           <div className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-2 text-brand-magenta">
@@ -156,9 +177,20 @@ export function DocketWorkspace({
                       </a>
                     </div>
 
-                    <p className="mt-3 break-words text-sm leading-6 text-neutral-600">
-                      {target.summary_text || 'No 2026 snapshot has been stored yet. Run a docket check to fetch the latest official summary.'}
-                    </p>
+                    {toBulletPoints(target.summary_text).length > 0 ? (
+                      <ul className="mt-3 space-y-2">
+                        {toBulletPoints(target.summary_text).map((bullet, index) => (
+                          <li key={`${target.id}-summary-${index}`} className="flex gap-2 text-sm leading-6 text-neutral-600">
+                            <span className="mt-[7px] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-brand-magenta" />
+                            <span className="break-words">{bullet}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-3 break-words text-sm leading-6 text-neutral-600">
+                        No 2026 snapshot has been stored yet. Run a docket check to fetch the latest official summary.
+                      </p>
+                    )}
 
                     <div className="mt-3 flex flex-wrap gap-2">
                       {target.docket_numbers.map((docketNumber) => (
@@ -177,57 +209,71 @@ export function DocketWorkspace({
                           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Most Relevant 2026 Rate Case Documents</p>
                           <span className="text-[11px] text-neutral-400">{Math.min(getDocketDocuments(target.latest_payload).length, 5)} shown</span>
                         </div>
-                        {getDocketDocuments(target.latest_payload).slice(0, 5).map((document, index) => (
-                          <div key={`${target.id}-document-${index}`} className="rounded-xl border border-neutral-200 bg-white px-3 py-3">
-                            <div className="min-w-0">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <p className="break-words pr-2 text-sm font-semibold leading-5 text-brand-navy">{document.title}</p>
-                                </div>
-                                <span className="shrink-0 rounded-full border border-neutral-200 bg-neutral-50 px-2 py-1 text-[10px] font-semibold text-neutral-500">
-                                  Doc {index + 1}
-                                </span>
-                              </div>
-                              <p className="mt-1 break-words text-[11px] text-neutral-500">
-                                {[document.filedDate, document.documentType, document.filingOnBehalfOf].filter(Boolean).join(' | ') || 'Official docket document'}
-                              </p>
-                            </div>
-                            {document.summary && (
-                              <p className="mt-2 break-words text-xs leading-5 text-neutral-600">{document.summary}</p>
-                            )}
-                            {document.keyTopics.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-1.5">
-                                {document.keyTopics.slice(0, 4).map((topic) => (
-                                  <span key={`${target.id}-${document.title}-${topic}`} className="rounded-full bg-neutral-50 px-2 py-1 text-[10px] font-semibold text-neutral-600">
-                                    {topic}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] leading-5 text-neutral-600">
-                              {document.stakeholders.length > 0 && (
-                                <span className="break-words">
-                                  <span className="font-semibold text-brand-navy">Stakeholders:</span> {document.stakeholders.slice(0, 4).join(', ')}
-                                </span>
-                              )}
-                              {document.officialUrl && (
-                                <a
-                                  href={document.officialUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-semibold text-brand-magenta transition-colors hover:text-brand-magenta-dark"
-                                >
-                                  View filing
-                                </a>
-                              )}
-                            </div>
-                            {document.accountPlanningAngle && (
-                              <p className="mt-2 break-words text-[11px] leading-5 text-neutral-600">
-                                <span className="font-semibold text-brand-navy">Account angle:</span> {document.accountPlanningAngle}
-                              </p>
-                            )}
+                        <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+                          <div className="grid grid-cols-[84px_minmax(0,1.2fr)_minmax(0,0.9fr)_112px] gap-3 border-b border-neutral-200 bg-neutral-50 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400">
+                            <span>Filed</span>
+                            <span>Document</span>
+                            <span>Stakeholders / Topics</span>
+                            <span className="text-right">Action</span>
                           </div>
-                        ))}
+                          {getDocketDocuments(target.latest_payload).slice(0, 5).map((document, index) => (
+                            <div
+                              key={`${target.id}-document-${index}`}
+                              className="grid grid-cols-[84px_minmax(0,1.2fr)_minmax(0,0.9fr)_112px] gap-3 border-b border-neutral-100 px-3 py-3 last:border-b-0"
+                            >
+                              <div className="text-[11px] leading-5 text-neutral-500">
+                                <div>{document.filedDate || '2026'}</div>
+                                <div className="mt-1 rounded-full bg-neutral-50 px-2 py-0.5 text-[10px] font-semibold text-neutral-500">
+                                  Doc {index + 1}
+                                </div>
+                              </div>
+                              <div className="min-w-0">
+                                <p className="break-words text-sm font-semibold leading-5 text-brand-navy">{document.title}</p>
+                                <p className="mt-1 break-words text-[11px] text-neutral-500">
+                                  {[document.documentType, document.filingOnBehalfOf].filter(Boolean).join(' | ') || 'Official docket document'}
+                                </p>
+                                {document.summary && (
+                                  <p className="mt-2 break-words text-xs leading-5 text-neutral-600">{document.summary}</p>
+                                )}
+                              </div>
+                              <div className="min-w-0 space-y-2">
+                                {document.stakeholders.length > 0 && (
+                                  <p className="break-words text-[11px] leading-5 text-neutral-600">
+                                    <span className="font-semibold text-brand-navy">Stakeholders:</span> {document.stakeholders.slice(0, 3).join(', ')}
+                                  </p>
+                                )}
+                                {document.keyTopics.length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {document.keyTopics.slice(0, 3).map((topic) => (
+                                      <span key={`${target.id}-${document.title}-${topic}`} className="rounded-full bg-neutral-50 px-2 py-1 text-[10px] font-semibold text-neutral-600">
+                                        {topic}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                {document.accountPlanningAngle && (
+                                  <p className="break-words text-[11px] leading-5 text-neutral-600">
+                                    <span className="font-semibold text-brand-navy">Angle:</span> {document.accountPlanningAngle}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="flex items-start justify-end">
+                                {document.officialUrl ? (
+                                  <a
+                                    href={document.officialUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-[11px] font-semibold text-neutral-600 transition-colors hover:border-brand-magenta/35 hover:text-brand-magenta"
+                                  >
+                                    View
+                                  </a>
+                                ) : (
+                                  <span className="text-[11px] text-neutral-400">Unavailable</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
 
@@ -271,6 +317,7 @@ export function DocketWorkspace({
           )}
         </div>
 
+        <div className="xl:sticky xl:top-5 xl:self-start">
         <div className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
           <div className="flex items-center gap-2 text-brand-magenta">
             <BellRing className="h-4 w-4" />
@@ -349,6 +396,7 @@ export function DocketWorkspace({
               )}
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>
