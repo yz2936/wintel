@@ -101,6 +101,7 @@ function OpCoSection({ text, opcoName, functionNames, selectedYear, keywords, gr
   const [error, setError] = useState<string | null>(null);
   const prioritySections = extractPrioritySections(text);
   const overflowNarrative = extractOverflowNarrative(text, prioritySections);
+  const consolidatedReadout = buildConsolidatedReadout(prioritySections, overflowNarrative);
 
   const handleGenerateTimeline = async () => {
     setLoading(true);
@@ -173,55 +174,20 @@ function OpCoSection({ text, opcoName, functionNames, selectedYear, keywords, gr
           })}
         </div>
 
-        {prioritySections.some((section) => section.body.trim()) && (
-          <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4">
-            <div className="mb-4 flex items-center gap-2">
-              <ArrowUpRight className="h-4 w-4 text-brand-magenta" />
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400">Detailed Readout</p>
-            </div>
-            <div className="space-y-4">
-              {prioritySections
-                .filter((section) => section.body.trim())
-                .map((section) => (
-                  <div key={`${opcoName}-${section.key}-detail`} className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4">
-                    <div className="mb-3 flex items-center gap-2 text-brand-magenta">
-                      <section.icon className="h-4 w-4" />
-                      <h4 className="text-sm font-semibold text-brand-navy">{section.title}</h4>
-                    </div>
-                    <div className="prose prose-sm prose-neutral max-w-none prose-headings:font-semibold prose-headings:text-brand-navy prose-a:text-brand-magenta prose-a:no-underline hover:prose-a:underline print:prose-a:text-black">
-                      <Markdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          strong: ({node, ...props}) => <InteractiveKeyword keywords={keywords} groundingChunks={groundingChunks} {...props} />,
-                          ul: ({node, ...props}) => <ul className="space-y-1.5" {...props} />,
-                          li: ({node, ...props}) => <li className="leading-6 marker:text-brand-magenta" {...props} />
-                        }}
-                      >
-                        {section.body}
-                      </Markdown>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-        )}
-
-        {overflowNarrative && (
+        {consolidatedReadout.length > 0 && (
           <div className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4">
             <div className="mb-3 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-brand-magenta" />
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400">Supplementary Narrative</p>
+              <ArrowUpRight className="h-4 w-4 text-brand-magenta" />
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400">Sharp Readout</p>
             </div>
-            <div className="prose prose-sm prose-neutral max-w-none prose-headings:font-semibold prose-headings:text-brand-navy prose-a:text-brand-magenta prose-a:no-underline hover:prose-a:underline print:prose-a:text-black">
-              <Markdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  strong: ({node, ...props}) => <InteractiveKeyword keywords={keywords} groundingChunks={groundingChunks} {...props} />
-                }}
-              >
-                {overflowNarrative}
-              </Markdown>
-            </div>
+            <ul className="space-y-2.5">
+              {consolidatedReadout.map((item, index) => (
+                <li key={`${opcoName}-consolidated-${index}`} className="flex gap-2 text-sm leading-6 text-neutral-700">
+                  <span className="mt-[8px] h-1.5 w-1.5 shrink-0 rounded-full bg-brand-magenta" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </div>
@@ -525,4 +491,27 @@ function compactSentence(sentence: string) {
     .replace(/\s+/g, ' ')
     .replace(/^Summary:\s*/i, '')
     .trim();
+}
+
+function buildConsolidatedReadout(
+  prioritySections: Array<{ title: string; body: string }>,
+  overflowNarrative: string
+) {
+  const consolidated = prioritySections
+    .map((section) => {
+      const firstBullet = buildStrategicSnapshot(section.body)[0];
+      if (!firstBullet) {
+        return null;
+      }
+
+      return `${section.title}: ${firstBullet}`;
+    })
+    .filter((item): item is string => Boolean(item))
+    .slice(0, 4);
+
+  const overflowItems = buildStrategicSnapshot(overflowNarrative)
+    .filter((item) => !consolidated.includes(item))
+    .slice(0, Math.max(0, 5 - consolidated.length));
+
+  return [...consolidated, ...overflowItems];
 }
