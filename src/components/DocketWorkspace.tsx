@@ -317,31 +317,31 @@ export function DocketWorkspace({
           )}
       </div>
 
-      <div className="fixed bottom-5 right-5 z-40">
+      <div className="fixed bottom-4 right-4 z-40 sm:bottom-5 sm:right-5">
         {isAgentOpen ? (
-          <div className="w-[min(420px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-[0_28px_90px_rgba(11,0,78,0.18)]">
-            <div className="flex items-start justify-between gap-3 border-b border-neutral-200 bg-[linear-gradient(135deg,#ffffff_0%,#fbf8ff_100%)] px-5 py-4">
-              <div>
+          <div className="max-h-[calc(100vh-2rem)] w-[min(420px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-[0_28px_90px_rgba(11,0,78,0.18)] sm:max-h-[calc(100vh-2.5rem)]">
+            <div className="flex items-start justify-between gap-3 border-b border-neutral-200 bg-[linear-gradient(135deg,#ffffff_0%,#fbf8ff_100%)] px-4 py-4 sm:px-5">
+              <div className="min-w-0 pr-2">
                 <div className="flex items-center gap-2 text-brand-magenta">
                   <BellRing className="h-4 w-4" />
                   <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Ask The Docket Agent</span>
                 </div>
-                <h2 className="mt-2 text-lg font-semibold text-brand-navy">Need more detail?</h2>
-                <p className="mt-1 text-sm leading-6 text-neutral-600">
+                <h2 className="mt-2 break-words text-base font-semibold text-brand-navy sm:text-lg">Need more detail?</h2>
+                <p className="mt-1 break-words text-sm leading-6 text-neutral-600">
                   Defaults to 2026 filings. Ask for 2025 only when you want older material.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsAgentOpen(false)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500 transition-colors hover:bg-neutral-100"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500 transition-colors hover:bg-neutral-100"
                 title="Close docket agent"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="space-y-3 p-5">
+            <div className="max-h-[calc(100vh-8.5rem)] space-y-3 overflow-y-auto p-4 sm:max-h-[calc(100vh-9rem)] sm:p-5">
               <div className="flex flex-wrap gap-2">
                 {[
                   'What are the most important 2026 filings I should care about?',
@@ -364,10 +364,10 @@ export function DocketWorkspace({
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
                   placeholder="Ask for deeper filing analysis. Example: What do the 2026 filings imply for account strategy, and who should I engage first?"
-                  className="min-h-[124px] w-full resize-none rounded-2xl border border-neutral-200 bg-neutral-50/80 px-4 py-4 text-sm leading-6 text-neutral-800 transition-all placeholder:text-neutral-400 focus:border-brand-magenta/35 focus:outline-none"
+                  className="min-h-[116px] w-full resize-none rounded-2xl border border-neutral-200 bg-neutral-50/80 px-4 py-4 text-sm leading-6 text-neutral-800 transition-all placeholder:text-neutral-400 focus:border-brand-magenta/35 focus:outline-none sm:min-h-[124px]"
                 />
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs leading-5 text-neutral-500">
+                  <p className="max-w-[60%] text-xs leading-5 text-neutral-500">
                     Older years stay out unless you ask for them.
                   </p>
                   <button
@@ -387,7 +387,7 @@ export function DocketWorkspace({
                 </div>
               )}
 
-              <div className="max-h-[360px] space-y-3 overflow-y-auto pr-1">
+              <div className="max-h-[280px] space-y-3 overflow-y-auto pr-1 sm:max-h-[320px]">
                 {chatMessages.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50/80 px-4 py-4 text-sm leading-6 text-neutral-500">
                     Ask for more detail on the 2026 rate case filings, or explicitly request 2025 if you want prior-year material included.

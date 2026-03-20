@@ -397,9 +397,7 @@ export default function App() {
   const [isFocusCollapsed, setIsFocusCollapsed] = useState(false);
   const [focusSummary, setFocusSummary] = useState('Select a company and start a prompt to generate a concise AI focus summary for this workspace.');
   const [focusLoading, setFocusLoading] = useState(false);
-  const [composerHeight, setComposerHeight] = useState(104);
-  const [isResizingComposer, setIsResizingComposer] = useState(false);
-  const [isComposerCollapsed, setIsComposerCollapsed] = useState(false);
+  const [isAccountAgentOpen, setIsAccountAgentOpen] = useState(false);
   const [docketSubscription, setDocketSubscription] = useState<DocketWatchSubscription | null>(null);
   const [docketTargets, setDocketTargets] = useState<DocketWatchTarget[]>([]);
   const [docketEvents, setDocketEvents] = useState<DocketWatchEvent[]>([]);
@@ -530,29 +528,6 @@ export default function App() {
       }
     };
   }, [user, stateHydrated, selectedCompanyId, selectedOpCos, selectedFunctions, selectedYear, userProfile, messages]);
-
-  useEffect(() => {
-    if (!isResizingComposer) {
-      return;
-    }
-
-    const handleMove = (event: MouseEvent) => {
-      const nextHeight = window.innerHeight - event.clientY - 12;
-      setComposerHeight(Math.min(220, Math.max(84, nextHeight)));
-    };
-
-    const handleUp = () => {
-      setIsResizingComposer(false);
-    };
-
-    window.addEventListener('mousemove', handleMove);
-    window.addEventListener('mouseup', handleUp);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleUp);
-    };
-  }, [isResizingComposer]);
 
   const initializeSession = async () => {
     setAuthLoading(true);
@@ -872,6 +847,7 @@ export default function App() {
     setUploadedFile(null);
     setError(null);
     setIsConversationCollapsed(false);
+    setIsAccountAgentOpen(false);
   };
 
   if (authLoading) {
@@ -1029,7 +1005,7 @@ export default function App() {
                   handleSend={handleSend}
                 />
               ) : (
-                <div className="space-y-5 pb-28">
+                <div className="space-y-5 pb-28 sm:pb-32">
                   <div className="rounded-xl border border-neutral-200 bg-white shadow-sm">
                     <button
                       onClick={() => setIsConversationCollapsed((current) => !current)}
@@ -1217,77 +1193,66 @@ export default function App() {
         </div>
 
         {selectedView === 'account' && (
-        <div className="border-t border-neutral-200 bg-white/88 px-4 py-0 backdrop-blur-md print:hidden md:px-6">
-          <div className="mx-auto max-w-7xl">
-            {uploadedFile && (
-              <div className="mb-2 mt-2 inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-1 shadow-sm">
-                <FileText className="h-4 w-4 text-brand-magenta" />
-                <span className="max-w-[220px] truncate text-xs font-medium text-neutral-600">{uploadedFile.name}</span>
-                <button onClick={() => setUploadedFile(null)} className="rounded-full p-0.5 transition-colors hover:bg-neutral-100">
-                  <X className="h-3 w-3 text-neutral-400" />
-                </button>
-              </div>
-            )}
-
-            <div className="overflow-hidden rounded-[1.6rem] border border-neutral-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,243,255,0.96))] shadow-[0_24px_70px_rgba(11,0,78,0.08)]">
-              <button
-                type="button"
-                onClick={() => setIsComposerCollapsed((current) => !current)}
-                className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
-              >
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400">Prompt</p>
-                  <p className="mt-0.5 text-base font-semibold text-brand-navy">
-                    {isComposerCollapsed ? 'Expand account planning workspace' : 'Shape the next account planning brief'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {!isComposerCollapsed && <span className="text-[10px] text-neutral-500">{currentInput.trim().length} chars</span>}
-                  {isComposerCollapsed ? <ChevronUp className="h-4 w-4 text-neutral-500" /> : <ChevronDown className="h-4 w-4 text-neutral-500" />}
-                </div>
-              </button>
-
-              <AnimatePresence initial={false}>
-                {!isComposerCollapsed && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 24 }}
-                    transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                  <div className="border-t border-neutral-200/80 bg-[linear-gradient(135deg,rgba(11,0,78,0.02),rgba(255,0,204,0.04))] px-5 py-4">
-                    <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-                      {PRIORITY_TILES.map((tile) => {
-                        const Icon = tile.icon;
-                        return (
-                          <div key={tile.title} className="rounded-2xl border border-white/70 bg-white/75 p-3 shadow-sm">
-                            <div className="flex items-center gap-2 text-brand-magenta">
-                              <Icon className="h-3.5 w-3.5" />
-                              <span className="text-[10px] font-bold uppercase tracking-[0.18em]">{tile.title}</span>
-                            </div>
-                            <p className="mt-2 text-xs leading-5 text-neutral-600">{tile.subtitle}</p>
-                          </div>
-                        );
-                      })}
+          <div className="pointer-events-none fixed bottom-4 right-4 z-40 print:hidden sm:bottom-5 sm:right-5">
+            {isAccountAgentOpen ? (
+              <div className="pointer-events-auto max-h-[calc(100vh-2rem)] w-[min(460px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-[0_28px_90px_rgba(11,0,78,0.18)] sm:max-h-[calc(100vh-2.5rem)]">
+                <div className="flex items-start justify-between gap-3 border-b border-neutral-200 bg-[linear-gradient(135deg,#ffffff_0%,#fbf8ff_100%)] px-4 py-4 sm:px-5">
+                  <div className="min-w-0 pr-2">
+                    <div className="flex items-center gap-2 text-brand-magenta">
+                      <MessageSquare className="h-4 w-4" />
+                      <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Ask Wintel</span>
                     </div>
+                    <h2 className="mt-2 break-words text-base font-semibold text-brand-navy sm:text-lg">Shape the next account planning brief</h2>
+                    <p className="mt-1 break-words text-sm leading-6 text-neutral-600">
+                      Focus on recency, opportunities, stakeholders, and attack strategy without taking over the workspace.
+                    </p>
                   </div>
                   <button
                     type="button"
-                    onMouseDown={() => setIsResizingComposer(true)}
-                    className={`flex h-3 w-full cursor-row-resize items-center justify-center border-y border-neutral-200 text-neutral-300 transition-colors hover:text-neutral-500 ${isResizingComposer ? 'bg-neutral-50' : 'bg-white'}`}
-                    title="Drag to resize prompt area"
+                    onClick={() => setIsAccountAgentOpen(false)}
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500 transition-colors hover:bg-neutral-100"
+                    title="Close account agent"
                   >
-                    <span className="h-1 w-8 rounded-full bg-current/60" />
+                    <X className="h-4 w-4" />
                   </button>
-                  <div className="grid gap-2 border-b border-neutral-100 px-5 py-4 md:grid-cols-2 xl:grid-cols-4">
+                </div>
+
+                <div className="max-h-[calc(100vh-8.5rem)] space-y-4 overflow-y-auto p-4 sm:max-h-[calc(100vh-9rem)] sm:p-5">
+                  {uploadedFile && (
+                    <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 shadow-sm">
+                      <FileText className="h-4 w-4 shrink-0 text-brand-magenta" />
+                      <span className="truncate text-xs font-medium text-neutral-600">{uploadedFile.name}</span>
+                      <button onClick={() => setUploadedFile(null)} className="rounded-full p-0.5 transition-colors hover:bg-neutral-100">
+                        <X className="h-3 w-3 text-neutral-400" />
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {PRIORITY_TILES.map((tile) => {
+                      const Icon = tile.icon;
+                      return (
+                        <div key={tile.title} className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-3">
+                          <div className="flex items-center gap-2 text-brand-magenta">
+                            <Icon className="h-3.5 w-3.5" />
+                            <span className="text-[10px] font-bold uppercase tracking-[0.18em]">{tile.title}</span>
+                          </div>
+                          <p className="mt-2 text-xs leading-5 text-neutral-600">{tile.subtitle}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
                     {QUICK_CHAT_TEMPLATES.map((template) => {
                       const Icon = template.icon;
                       return (
                         <button
                           key={template.label}
+                          type="button"
                           onClick={() => activeCompanyName && setCurrentInput(template.build(activeCompanyName))}
                           disabled={!activeCompanyName}
-                          className="rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-brand-magenta/40 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-left transition-all hover:border-brand-magenta/40 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <div className="flex items-center gap-2 text-brand-magenta">
                             <Icon className="h-4 w-4" />
@@ -1299,15 +1264,15 @@ export default function App() {
                     })}
                   </div>
 
-                  <form onSubmit={(event) => void handleSend(event)} className="px-5 py-4">
-                    <div className="mb-3 flex items-center justify-between gap-4">
+                  <form onSubmit={(event) => void handleSend(event)} className="space-y-3">
+                    <div className="flex items-center justify-between gap-4">
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">Ask Wintel</p>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">Prompt</p>
                         <p className="mt-1 text-sm text-neutral-600">
                           Frame the brief around fresh developments, opportunity creation, stakeholder movement, and attack strategy.
                         </p>
                       </div>
-                      <div className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-[10px] font-semibold text-neutral-500">
+                      <div className="shrink-0 rounded-full border border-neutral-200 bg-white px-3 py-1 text-[10px] font-semibold text-neutral-500">
                         {currentInput.trim().length} chars
                       </div>
                     </div>
@@ -1316,20 +1281,18 @@ export default function App() {
                       onChange={(event) => setCurrentInput(event.target.value)}
                       placeholder={selectedCompanyId ? 'Example: What is the freshest news, who inside the client is implicated, what opportunity does it create, and what should I say in my first outreach?' : 'Select a company in the sidebar to start the pursuit workspace...'}
                       disabled={!selectedCompanyId}
-                      style={{ height: composerHeight }}
-                      className="w-full resize-none rounded-2xl border border-neutral-200 bg-white px-4 py-4 text-sm leading-6 text-neutral-800 shadow-inner transition-all placeholder:text-neutral-400 focus:border-brand-magenta/35 focus:outline-none disabled:cursor-not-allowed disabled:text-neutral-400"
+                      className="min-h-[148px] w-full resize-none rounded-2xl border border-neutral-200 bg-neutral-50/80 px-4 py-4 text-sm leading-6 text-neutral-800 transition-all placeholder:text-neutral-400 focus:border-brand-magenta/35 focus:outline-none disabled:cursor-not-allowed disabled:text-neutral-400"
                     />
-                    <div className="mt-2 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 text-[10px] text-neutral-500">
-                        <span>Drag to resize</span>
-                        <span>Best results come from account-planning questions tied to a recent trigger</span>
-                      </div>
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="max-w-[60%] text-xs leading-5 text-neutral-500">
+                        Best results come from account-planning questions tied to a recent trigger.
+                      </p>
+                      <div className="flex shrink-0 items-center gap-2">
                         {messages.length > 0 && (
                           <button
                             type="button"
                             onClick={handleClearConversation}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-100"
+                            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3 text-[11px] font-medium text-neutral-600 transition-colors hover:bg-neutral-100"
                             title="Clear conversation"
                           >
                             <RotateCcw className="h-3.5 w-3.5" />
@@ -1340,7 +1303,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-brand-navy"
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-brand-navy"
                           title="Attach context file"
                         >
                           <Paperclip className="h-3.5 w-3.5" />
@@ -1348,7 +1311,7 @@ export default function App() {
                         <button
                           type="submit"
                           disabled={loading || !selectedCompanyId || (!currentInput.trim() && !uploadedFile)}
-                          className="inline-flex h-8 items-center gap-2 rounded-md bg-brand-navy px-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-navy/15 transition-colors hover:bg-brand-navy/90 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex h-9 items-center gap-2 rounded-xl bg-brand-navy px-4 text-sm font-semibold text-white shadow-lg shadow-brand-navy/15 transition-colors hover:bg-brand-navy/90 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                           Send
@@ -1356,12 +1319,19 @@ export default function App() {
                       </div>
                     </div>
                   </form>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsAccountAgentOpen(true)}
+                className="pointer-events-auto inline-flex h-14 items-center gap-3 rounded-full bg-brand-navy px-5 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(11,0,78,0.25)] transition-transform hover:-translate-y-0.5 hover:bg-brand-navy/92"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Account Agent
+              </button>
+            )}
           </div>
-        </div>
         )}
 
         <div id="print-root" className="hidden">
