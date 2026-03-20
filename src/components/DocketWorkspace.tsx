@@ -355,7 +355,7 @@ export function DocketWorkspace({
 
       <div className="fixed bottom-4 right-4 z-40 sm:bottom-5 sm:right-5">
         {isAgentOpen ? (
-          <div className="max-h-[calc(100vh-2rem)] w-[min(420px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-[0_28px_90px_rgba(11,0,78,0.18)] sm:max-h-[calc(100vh-2.5rem)]">
+          <div className="flex h-[min(760px,calc(100vh-2rem))] w-[min(460px,calc(100vw-2rem))] flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-[0_28px_90px_rgba(11,0,78,0.18)] sm:h-[min(780px,calc(100vh-2.5rem))]">
             <div className="flex items-start justify-between gap-3 border-b border-neutral-200 bg-[linear-gradient(135deg,#ffffff_0%,#fbf8ff_100%)] px-4 py-4 sm:px-5">
               <div className="min-w-0 pr-2">
                 <div className="flex items-center gap-2 text-brand-magenta">
@@ -378,7 +378,7 @@ export function DocketWorkspace({
               </button>
             </div>
 
-            <div className="max-h-[calc(100vh-8.5rem)] space-y-3 overflow-y-auto p-4 sm:max-h-[calc(100vh-9rem)] sm:p-5">
+            <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
               <div className="flex flex-wrap gap-2">
                 {[
                   'What are the most important 2026 filings I should care about?',
@@ -396,7 +396,7 @@ export function DocketWorkspace({
                 ))}
               </div>
 
-              <form onSubmit={(event) => void handleSubmit(event)} className="space-y-3">
+              <form onSubmit={(event) => void handleSubmit(event)} className="mt-3 space-y-3">
                 <textarea
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
@@ -419,30 +419,32 @@ export function DocketWorkspace({
               </form>
 
               {askError && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {askError}
                 </div>
               )}
 
-              <div className="max-h-[280px] space-y-3 overflow-y-auto pr-1 sm:max-h-[320px]">
+              <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
                 {chatMessages.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50/80 px-4 py-4 text-sm leading-6 text-neutral-500">
                     Ask for more detail on the 2026 rate case filings, or explicitly request 2025 if you want prior-year material included.
                   </div>
                 ) : (
-                  chatMessages.map((message, index) => (
-                    <div
-                      key={`${message.role}-${index}-${message.timestamp.toISOString()}`}
-                      className={message.role === 'user' ? 'flex justify-end' : 'flex justify-start'}
-                    >
-                      <div className={`${message.role === 'user' ? 'max-w-[90%] rounded-2xl rounded-tr-sm bg-brand-navy px-4 py-3 text-white' : 'w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-neutral-700'}`}>
-                        <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] opacity-60">
-                          {message.role === 'user' ? 'Your Question' : 'Docket Agent'}
+                  <div className="space-y-3">
+                    {chatMessages.map((message, index) => (
+                      <div
+                        key={`${message.role}-${index}-${message.timestamp.toISOString()}`}
+                        className={message.role === 'user' ? 'flex justify-end' : 'flex justify-start'}
+                      >
+                        <div className={`${message.role === 'user' ? 'max-w-[90%] rounded-2xl rounded-tr-sm bg-brand-navy px-4 py-3 text-white' : 'w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-neutral-700'}`}>
+                          <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] opacity-60">
+                            {message.role === 'user' ? 'Your Question' : 'Docket Agent'}
+                          </div>
+                          <div className="whitespace-pre-wrap break-words text-sm leading-6">{message.content}</div>
                         </div>
-                        <div className="whitespace-pre-wrap text-sm leading-6">{message.content}</div>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
