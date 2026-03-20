@@ -427,6 +427,58 @@ export async function listRecentEventsForUser(userId: string) {
   };
 }
 
+export async function answerDocketQuestion(userId: string, question: string) {
+  const trimmedQuestion = question.trim();
+  if (!trimmedQuestion) {
+    throw new Error('Question is required.');
+  }
+
+  const context = await listRecentEventsForUser(userId);
+  const apiKey = process.env.OPENAI_API_KEY || '';
+  if (!apiKey) {
+    throw new Error('Missing OPENAI_API_KEY in Vercel environment variables.');
+  }
+
+  const allowPriorYears = /\b2025\b|\b2024\b|\bprior year\b|\bprevious year\b|\bhistorical\b|\bolder filing/i.test(trimmedQuestion);
+  const prompt = `
+You are Wintel's docket agent for account planning and business development.
+
+Use the supplied latest watch context first. If the user explicitly asks for 2025 or older filings, you may use web search to retrieve official NY DPS filings from those years. Otherwise, stay focused on 2026 only.
+
+USER QUESTION:
+${trimmedQuestion}
+
+RULES:
+- Default to 2026 filings only
+- Only include 2025 or older filings if the user's question explicitly asks for them
+- Use only official NY DPS sources on documents.dps.ny.gov when you need external retrieval
+- Answer from an account-planning perspective: key implications, relevant stakeholders, what changed, and recommended next move
+- Be concise but useful
+
+CURRENT WATCH CONTEXT:
+${JSON.stringify(context.targets, null, 2)}
+
+RECENT EVENTS:
+${JSON.stringify(context.events.slice(0, 8), null, 2)}
+  `.trim();
+
+  const payload = await requestOpenAI({
+    model: DEFAULT_MODEL,
+    input: prompt,
+    tools: [{ type: 'web_search' }]
+  });
+
+  const text = sanitizeModelText(extractOutputText(payload)).trim();
+  if (!text) {
+    throw new Error('OpenAI returned an empty docket response.');
+  }
+
+  return {
+    text,
+    scope: allowPriorYears ? 'historical_on_request' : 'default_2026_only'
+  };
+}
+
 export async function syncDocketWatches(options?: { forceSend?: boolean; userId?: string }) {
   const admin = getAdminClient();
   const warnings: string[] = [];
@@ -720,7 +772,7 @@ async function buildNyDocketIntelligence(target: WatchTargetRow, parsed: ParsedS
     input: `
 You are monitoring an official New York DPS rate case docket for account planning.
 
-Use web search to find the latest five official docket documents or matter filing items for this exact case.
+Use web search to find up to the latest five official docket documents or matter filing items for this exact case that were filed in calendar year 2026.
 Only use official NY DPS links on documents.dps.ny.gov.
 
 TARGET CASE:
@@ -735,9 +787,11 @@ Return:
 - documents: up to 5 latest official documents with title, filedDate, documentType, filingOnBehalfOf, officialUrl, summary, keyTopics, stakeholders, accountPlanningAngle
 
 Rules:
+- Default to 2026 filings only for this watcher
 - Prefer filing-item pages or direct document pages for this exact case number
 - Prioritize documents that are most relevant to the actual rate case filing and outcome, such as the utility filing itself, testimony, staff positions, intervenor comments, settlement papers, judge notices, briefing schedules, and commission notices that change timing or leverage
 - Exclude low-signal items like routine correspondence, generic service lists, duplicate notices, and public comments unless they are directly material to the rate case posture
+- If no 2026 documents are available yet, return an empty documents array and write the summary from the official docket snapshot only
 - Do not include unofficial sources
 - If some fields are unavailable, return an empty string for that field
 - Stakeholders should be named people or roles implicated by the filing when visible; otherwise use likely client roles

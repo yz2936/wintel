@@ -1,4 +1,4 @@
-import { Zap, Building2, Loader2, CheckSquare, Square, LogOut, User } from 'lucide-react';
+import { Zap, Building2, Loader2, CheckSquare, Square, LogOut, User, BellRing, MessageSquareText } from 'lucide-react';
 import { CompanyGroup } from '../data/companies';
 
 interface FunctionArea {
@@ -7,6 +7,8 @@ interface FunctionArea {
 }
 
 interface SidebarProps {
+  selectedView: 'account' | 'dockets';
+  onSelectView: (view: 'account' | 'dockets') => void;
   companyGroups: CompanyGroup[];
   selectedCompanyId: string | null;
   onSelectCompany: (id: string | null) => void;
@@ -27,6 +29,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ 
+  selectedView,
+  onSelectView,
   companyGroups, 
   selectedCompanyId,
   onSelectCompany,
@@ -59,8 +63,34 @@ export function Sidebar({
       </div>
       
       <div className="p-3 flex-1 overflow-y-auto space-y-5 custom-scrollbar">
+        <div className="space-y-2">
+          <h3 className="px-2 text-[10px] font-bold uppercase tracking-widest text-white/40">
+            Workspaces
+          </h3>
+          <div className="space-y-1 px-1">
+            <button
+              onClick={() => onSelectView('account')}
+              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[13px] font-medium transition-colors ${
+                selectedView === 'account' ? 'bg-brand-magenta/20 text-white' : 'text-white/70 hover:bg-white/10'
+              }`}
+            >
+              <MessageSquareText className={`h-4 w-4 ${selectedView === 'account' ? 'text-brand-magenta' : 'text-white/50'}`} />
+              Account Planner
+            </button>
+            <button
+              onClick={() => onSelectView('dockets')}
+              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[13px] font-medium transition-colors ${
+                selectedView === 'dockets' ? 'bg-brand-magenta/20 text-white' : 'text-white/70 hover:bg-white/10'
+              }`}
+            >
+              <BellRing className={`h-4 w-4 ${selectedView === 'dockets' ? 'text-brand-magenta' : 'text-white/50'}`} />
+              Docket Watch
+            </button>
+          </div>
+        </div>
+
         {/* Step 1: Company Selection */}
-        <div className="space-y-3">
+        <div className={`space-y-3 transition-opacity duration-300 ${selectedView === 'account' ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
           <div className="flex items-center justify-between px-2">
             <h3 className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
               1. Select Target Company

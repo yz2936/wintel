@@ -47,6 +47,11 @@ export type DocketWatchSyncResponse = {
   warnings: string[];
 };
 
+export type DocketAskResponse = {
+  text: string;
+  scope: string;
+};
+
 export async function fetchDocketWatchEvents(): Promise<DocketWatchEventsResponse> {
   return requestWithSession('/api/dockets/events', {
     method: 'GET'
@@ -56,6 +61,13 @@ export async function fetchDocketWatchEvents(): Promise<DocketWatchEventsRespons
 export async function runDocketWatchSync(): Promise<DocketWatchSyncResponse> {
   return requestWithSession('/api/dockets/sync', {
     method: 'POST'
+  });
+}
+
+export async function askDocketQuestion(question: string): Promise<DocketAskResponse> {
+  return requestWithSession('/api/dockets/ask', {
+    method: 'POST',
+    body: JSON.stringify({ question })
   });
 }
 

@@ -14,18 +14,21 @@ create table if not exists public.user_state (
 
 alter table public.user_state enable row level security;
 
+drop policy if exists "Users can read their own state" on public.user_state;
 create policy "Users can read their own state"
 on public.user_state
 for select
 to authenticated
 using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert their own state" on public.user_state;
 create policy "Users can insert their own state"
 on public.user_state
 for insert
 to authenticated
 with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update their own state" on public.user_state;
 create policy "Users can update their own state"
 on public.user_state
 for update
@@ -105,18 +108,21 @@ alter table public.docket_watch_snapshots enable row level security;
 alter table public.docket_watch_events enable row level security;
 alter table public.docket_watch_deliveries enable row level security;
 
+drop policy if exists "Users can read their own docket subscriptions" on public.docket_watch_subscriptions;
 create policy "Users can read their own docket subscriptions"
 on public.docket_watch_subscriptions
 for select
 to authenticated
 using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert their own docket subscriptions" on public.docket_watch_subscriptions;
 create policy "Users can insert their own docket subscriptions"
 on public.docket_watch_subscriptions
 for insert
 to authenticated
 with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update their own docket subscriptions" on public.docket_watch_subscriptions;
 create policy "Users can update their own docket subscriptions"
 on public.docket_watch_subscriptions
 for update
@@ -124,6 +130,7 @@ to authenticated
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
 
+drop policy if exists "Users can read their own docket targets" on public.docket_watch_targets;
 create policy "Users can read their own docket targets"
 on public.docket_watch_targets
 for select
@@ -137,6 +144,7 @@ using (
   )
 );
 
+drop policy if exists "Users can insert their own docket targets" on public.docket_watch_targets;
 create policy "Users can insert their own docket targets"
 on public.docket_watch_targets
 for insert
@@ -150,6 +158,7 @@ with check (
   )
 );
 
+drop policy if exists "Users can update their own docket targets" on public.docket_watch_targets;
 create policy "Users can update their own docket targets"
 on public.docket_watch_targets
 for update
@@ -171,6 +180,7 @@ with check (
   )
 );
 
+drop policy if exists "Users can read their own docket snapshots" on public.docket_watch_snapshots;
 create policy "Users can read their own docket snapshots"
 on public.docket_watch_snapshots
 for select
@@ -185,6 +195,7 @@ using (
   )
 );
 
+drop policy if exists "Users can read their own docket events" on public.docket_watch_events;
 create policy "Users can read their own docket events"
 on public.docket_watch_events
 for select
@@ -198,6 +209,7 @@ using (
   )
 );
 
+drop policy if exists "Users can read their own docket deliveries" on public.docket_watch_deliveries;
 create policy "Users can read their own docket deliveries"
 on public.docket_watch_deliveries
 for select

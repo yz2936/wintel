@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
+import { DocketWorkspace } from './components/DocketWorkspace';
 import { LoginPage } from './components/LoginPage';
 import { fetchFocusSummary, fetchNews, fetchPlanOfAttack, Contact, KeywordInsight } from './services/gemini';
 import { login, logout, register, restoreSession, saveUserState, AuthUser, PersistedState } from './services/auth';
-import { fetchDocketWatchEvents, runDocketWatchSync, type DocketWatchEvent, type DocketWatchSubscription, type DocketWatchTarget } from './services/dockets';
+import { askDocketQuestion, fetchDocketWatchEvents, runDocketWatchSync, type DocketWatchEvent, type DocketWatchSubscription, type DocketWatchTarget } from './services/dockets';
 import {
   AlertCircle,
-  BellRing,
   BriefcaseBusiness,
   RotateCcw,
   ChevronDown,
@@ -25,7 +25,6 @@ import {
   MessageSquare,
   Paperclip,
   RadioTower,
-  RefreshCw,
   Send,
   Sparkles,
   Target,
@@ -105,6 +104,12 @@ interface ChatMessage {
   timestamp: Date;
   contacts?: Contact[];
   keywords?: KeywordInsight[];
+}
+
+interface DocketChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
 }
 
 const defaultAppState = (): PersistedState => ({
@@ -365,39 +370,12 @@ function buildLocalFocusSummary(input: {
   return `Focus is on ${input.companyName}, specifically ${opcoText}, using ${functionText} and ${timelineText} through a ${personaText} lens.${promptText}`;
 }
 
-function getDocketDocuments(payload: Record<string, unknown> | null) {
-  const documents = payload?.documents;
-  if (!Array.isArray(documents)) {
-    return [];
-  }
-
-  return documents
-    .map((document) => {
-      if (!document || typeof document !== 'object') {
-        return null;
-      }
-
-      const entry = document as Record<string, unknown>;
-      return {
-        title: typeof entry.title === 'string' ? entry.title : 'Untitled docket document',
-        filedDate: typeof entry.filedDate === 'string' ? entry.filedDate : '',
-        documentType: typeof entry.documentType === 'string' ? entry.documentType : '',
-        filingOnBehalfOf: typeof entry.filingOnBehalfOf === 'string' ? entry.filingOnBehalfOf : '',
-        officialUrl: typeof entry.officialUrl === 'string' ? entry.officialUrl : '',
-        summary: typeof entry.summary === 'string' ? entry.summary : '',
-        keyTopics: Array.isArray(entry.keyTopics) ? entry.keyTopics.filter((item): item is string => typeof item === 'string') : [],
-        stakeholders: Array.isArray(entry.stakeholders) ? entry.stakeholders.filter((item): item is string => typeof item === 'string') : [],
-        accountPlanningAngle: typeof entry.accountPlanningAngle === 'string' ? entry.accountPlanningAngle : ''
-      };
-    })
-    .filter((document): document is NonNullable<typeof document> => Boolean(document));
-}
-
 export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [authSubmitting, setAuthSubmitting] = useState(false);
   const [authInitError, setAuthInitError] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [selectedView, setSelectedView] = useState<'account' | 'dockets'>('account');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [selectedOpCos, setSelectedOpCos] = useState<string[]>([]);
@@ -429,6 +407,9 @@ export default function App() {
   const [docketSyncing, setDocketSyncing] = useState(false);
   const [docketError, setDocketError] = useState<string | null>(null);
   const [docketStatus, setDocketStatus] = useState('Sign in to load your docket watch.');
+  const [docketChatMessages, setDocketChatMessages] = useState<DocketChatMessage[]>([]);
+  const [docketAskLoading, setDocketAskLoading] = useState(false);
+  const [docketAskError, setDocketAskError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const saveTimeoutRef = useRef<number | null>(null);
@@ -450,6 +431,8 @@ export default function App() {
       setDocketEvents([]);
       setDocketError(null);
       setDocketStatus('Sign in to load your docket watch.');
+      setDocketChatMessages([]);
+      setDocketAskError(null);
       return;
     }
 
@@ -855,6 +838,34 @@ export default function App() {
     }
   };
 
+  const handleAskDocketAgent = async (query: string) => {
+    const userMessage: DocketChatMessage = {
+      role: 'user',
+      content: query,
+      timestamp: new Date()
+    };
+
+    setDocketChatMessages((previous) => [...previous, userMessage]);
+    setDocketAskLoading(true);
+    setDocketAskError(null);
+
+    try {
+      const response = await askDocketQuestion(query);
+      setDocketChatMessages((previous) => [
+        ...previous,
+        {
+          role: 'assistant',
+          content: response.text,
+          timestamp: new Date()
+        }
+      ]);
+    } catch (askError: any) {
+      setDocketAskError(askError?.message || 'Failed to ask the docket agent.');
+    } finally {
+      setDocketAskLoading(false);
+    }
+  };
+
   const handleClearConversation = () => {
     setMessages([]);
     setCurrentInput('');
@@ -917,6 +928,8 @@ export default function App() {
       >
         <div className="h-full w-[272px]">
           <Sidebar
+            selectedView={selectedView}
+            onSelectView={setSelectedView}
             companyGroups={COMPANIES}
             selectedCompanyId={selectedCompanyId}
             onSelectCompany={handleSelectCompany}
@@ -941,224 +954,66 @@ export default function App() {
       <main className="relative flex h-full flex-1 flex-col overflow-hidden print:overflow-visible">
         <div className="flex-1 overflow-y-auto px-4 py-3 print:overflow-visible print:p-0 md:px-5">
           <div className="mx-auto max-w-7xl space-y-4">
-            <div className="sticky top-0 z-20 pt-1">
-              <div className="rounded-xl border border-neutral-200 bg-white/92 shadow-sm backdrop-blur">
-                <button
-                  onClick={() => setIsFocusCollapsed((current) => !current)}
-                  className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left"
-                >
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400">Focus Summary</p>
-                    <h3 className="mt-1 text-base font-semibold text-brand-navy">
-                      {activeCompanyName ? `${activeCompanyName} account angle` : 'Workspace focus'}
-                    </h3>
-                  </div>
-                  <div className="flex items-center gap-3">
+            {selectedView === 'dockets' ? (
+              <DocketWorkspace
+                subscription={docketSubscription}
+                targets={docketTargets}
+                events={docketEvents}
+                loading={docketLoading}
+                syncing={docketSyncing}
+                status={docketStatus}
+                error={docketError}
+                onSync={handleRunDocketSync}
+                onAsk={handleAskDocketAgent}
+                askLoading={docketAskLoading}
+                askError={docketAskError}
+                chatMessages={docketChatMessages}
+              />
+            ) : (
+              <>
+                <div className="sticky top-0 z-20 pt-1">
+                  <div className="rounded-xl border border-neutral-200 bg-white/92 shadow-sm backdrop-blur">
                     <button
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setIsSidebarOpen((current) => !current);
-                      }}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-500 transition-colors hover:bg-neutral-100"
-                      title={isSidebarOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
+                      onClick={() => setIsFocusCollapsed((current) => !current)}
+                      className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left"
                     >
-                      {isSidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-                    </button>
-                    {isFocusCollapsed ? <ChevronDown className="h-4 w-4 text-neutral-500" /> : <ChevronUp className="h-4 w-4 text-neutral-500" />}
-                  </div>
-                </button>
-
-                {!isFocusCollapsed && (
-                  <div className="border-t border-neutral-200 px-4 py-3">
-                    <p className="text-sm leading-6 text-neutral-700">
-                      {focusLoading ? 'Refreshing AI summary...' : focusSummary}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-neutral-500">
-                      <span><strong className="font-semibold text-brand-navy">OpCos:</strong> {activeOpCos.length > 0 ? activeOpCos.join(', ') : 'All relevant entities'}</span>
-                      <span><strong className="font-semibold text-brand-navy">Functions:</strong> {currentFunctionNames.length > 0 ? currentFunctionNames.join(', ') : 'General lens'}</span>
-                      <span><strong className="font-semibold text-brand-navy">Timeline:</strong> {selectedYear || 'Next 5 years'}</span>
-                    </div>
-
-                    <div className="mt-4 rounded-2xl border border-brand-magenta/12 bg-[linear-gradient(180deg,rgba(248,244,255,0.95),rgba(255,255,255,0.96))] p-4 shadow-sm">
-                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                        <div>
-                          <div className="flex items-center gap-2 text-brand-magenta">
-                            <BellRing className="h-4 w-4" />
-                            <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Docket Watch</span>
-                          </div>
-                          <h3 className="mt-2 text-base font-semibold text-brand-navy">Monitor and summarize official docket changes without leaving the workspace</h3>
-                          <p className="mt-1 text-sm leading-6 text-neutral-600">
-                            {docketLoading ? 'Loading watch status...' : docketStatus}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => void handleRunDocketSync()}
-                          disabled={!user || docketLoading || docketSyncing}
-                          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-navy px-4 text-sm font-semibold text-white shadow-lg shadow-brand-navy/15 transition-colors hover:bg-brand-navy/90 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {docketSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                          Check Docket Changes
-                        </button>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400">Focus Summary</p>
+                        <h3 className="mt-1 text-base font-semibold text-brand-navy">
+                          {activeCompanyName ? `${activeCompanyName} account angle` : 'Workspace focus'}
+                        </h3>
                       </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setIsSidebarOpen((current) => !current);
+                          }}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-500 transition-colors hover:bg-neutral-100"
+                          title={isSidebarOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
+                        >
+                          {isSidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+                        </button>
+                        {isFocusCollapsed ? <ChevronDown className="h-4 w-4 text-neutral-500" /> : <ChevronUp className="h-4 w-4 text-neutral-500" />}
+                      </div>
+                    </button>
 
-                      {docketSubscription && (
-                        <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-                          <span className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 font-semibold text-neutral-600">
-                            Weekly email to {docketSubscription.recipient_email}
-                          </span>
-                          <span className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 font-semibold text-neutral-600">
-                            Cadence: {docketSubscription.frequency}
-                          </span>
+                    {!isFocusCollapsed && (
+                      <div className="border-t border-neutral-200 px-4 py-3">
+                        <p className="text-sm leading-6 text-neutral-700">
+                          {focusLoading ? 'Refreshing AI summary...' : focusSummary}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-neutral-500">
+                          <span><strong className="font-semibold text-brand-navy">OpCos:</strong> {activeOpCos.length > 0 ? activeOpCos.join(', ') : 'All relevant entities'}</span>
+                          <span><strong className="font-semibold text-brand-navy">Functions:</strong> {currentFunctionNames.length > 0 ? currentFunctionNames.join(', ') : 'General lens'}</span>
+                          <span><strong className="font-semibold text-brand-navy">Timeline:</strong> {selectedYear || 'Next 5 years'}</span>
                         </div>
-                      )}
-
-                      {docketError && (
-                        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                          {docketError}
-                        </div>
-                      )}
-
-                      {!docketLoading && docketEvents.length === 0 && !docketError && (
-                        <div className="mt-4 rounded-2xl border border-dashed border-neutral-200 bg-white/80 px-4 py-4 text-sm leading-6 text-neutral-500">
-                          No docket changes have been captured yet. Use <span className="font-semibold text-brand-navy">Check Docket Changes</span> to poll the active watches and populate this feed when official filings move.
-                        </div>
-                      )}
-
-                      {docketTargets.length > 0 && (
-                        <div className="mt-4">
-                          <div className="mb-3 flex items-center gap-2 text-brand-magenta">
-                            <RadioTower className="h-4 w-4" />
-                            <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Latest Rate Case Snapshot</span>
-                          </div>
-                          <div className="grid gap-3 md:grid-cols-2">
-                            {docketTargets.map((target) => (
-                              <div
-                                key={target.id}
-                                className="group rounded-2xl border border-neutral-200 bg-white px-4 py-3 transition-all hover:-translate-y-0.5 hover:border-brand-magenta/35 hover:shadow-md"
-                              >
-                                <div className="flex items-center justify-between gap-3">
-                                  <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-magenta">
-                                    {target.state} {target.utility_type}
-                                  </span>
-                                  <a
-                                    href={target.source_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-neutral-50 text-neutral-400 transition-colors hover:border-brand-magenta/35 hover:text-brand-magenta"
-                                    title="Open official docket page"
-                                  >
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                  </a>
-                                </div>
-                                <h4 className="mt-2 text-sm font-semibold leading-6 text-brand-navy">{target.display_name}</h4>
-                                <p className="mt-2 text-sm leading-6 text-neutral-600">
-                                  {target.summary_text || 'No snapshot has been stored yet. Run a docket check to fetch the latest official summary.'}
-                                </p>
-                                {getDocketDocuments(target.latest_payload).length > 0 && (
-                                  <div className="mt-3 space-y-3 border-t border-neutral-100 pt-3">
-                                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Most Relevant Rate Case Documents</p>
-                                    {getDocketDocuments(target.latest_payload).slice(0, 5).map((document, index) => (
-                                      <div key={`${target.id}-document-${index}`} className="rounded-xl border border-neutral-200 bg-neutral-50/70 px-3 py-3">
-                                        <div className="flex items-start justify-between gap-3">
-                                          <div>
-                                            <p className="text-xs font-semibold text-brand-navy">{document.title}</p>
-                                            <p className="mt-1 text-[11px] text-neutral-500">
-                                              {[document.filedDate, document.documentType, document.filingOnBehalfOf].filter(Boolean).join(' | ') || 'Official docket document'}
-                                            </p>
-                                          </div>
-                                          {document.officialUrl && (
-                                            <a
-                                              href={document.officialUrl}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="rounded-full border border-neutral-200 bg-white px-2 py-1 text-[10px] font-semibold text-neutral-500 transition-colors hover:border-brand-magenta/35 hover:text-brand-magenta"
-                                            >
-                                              Open doc
-                                            </a>
-                                          )}
-                                        </div>
-                                        {document.summary && (
-                                          <p className="mt-2 text-xs leading-5 text-neutral-600">{document.summary}</p>
-                                        )}
-                                        {document.keyTopics.length > 0 && (
-                                          <div className="mt-2 flex flex-wrap gap-1.5">
-                                            {document.keyTopics.map((topic) => (
-                                              <span key={`${target.id}-${document.title}-${topic}`} className="rounded-full bg-white px-2 py-1 text-[10px] font-semibold text-neutral-600">
-                                                {topic}
-                                              </span>
-                                            ))}
-                                          </div>
-                                        )}
-                                        {document.stakeholders.length > 0 && (
-                                          <p className="mt-2 text-[11px] leading-5 text-neutral-600">
-                                            <span className="font-semibold text-brand-navy">Stakeholders:</span> {document.stakeholders.join(', ')}
-                                          </p>
-                                        )}
-                                        {document.accountPlanningAngle && (
-                                          <p className="mt-2 text-[11px] leading-5 text-neutral-600">
-                                            <span className="font-semibold text-brand-navy">Account angle:</span> {document.accountPlanningAngle}
-                                          </p>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                                <div className="mt-3 flex flex-wrap gap-2">
-                                  {target.docket_numbers.map((docketNumber) => (
-                                    <span
-                                      key={`${target.id}-${docketNumber}`}
-                                      className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[11px] font-semibold text-neutral-600"
-                                    >
-                                      {docketNumber}
-                                    </span>
-                                  ))}
-                                </div>
-                                <p className="mt-3 text-xs text-neutral-400">
-                                  {target.last_checked_at ? `Last checked ${format(new Date(target.last_checked_at), 'MMM d, yyyy h:mm a')}` : 'Not checked yet'}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {docketEvents.length > 0 && (
-                        <div className="mt-4">
-                          <div className="mb-3 flex items-center gap-2 text-brand-magenta">
-                            <BellRing className="h-4 w-4" />
-                            <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Recent Change Events</span>
-                          </div>
-                          <div className="grid gap-3 md:grid-cols-2">
-                          {docketEvents.slice(0, 4).map((event) => (
-                            <a
-                              key={event.id}
-                              href={event.source_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="group rounded-2xl border border-neutral-200 bg-white px-4 py-3 transition-all hover:-translate-y-0.5 hover:border-brand-magenta/35 hover:shadow-md"
-                            >
-                              <div className="flex items-center justify-between gap-3">
-                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-magenta">
-                                  {event.event_type.replace(/_/g, ' ')}
-                                </span>
-                                <ExternalLink className="h-3.5 w-3.5 text-neutral-400 transition-colors group-hover:text-brand-magenta" />
-                              </div>
-                              <h4 className="mt-2 text-sm font-semibold leading-6 text-brand-navy">{event.title}</h4>
-                              <p className="mt-2 text-sm leading-6 text-neutral-600">{event.summary}</p>
-                              <p className="mt-3 text-xs text-neutral-400">{format(new Date(event.event_date), 'MMM d, yyyy h:mm a')}</p>
-                            </a>
-                          ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
 
-            <AnimatePresence initial={false}>
+                <AnimatePresence initial={false}>
               {messages.length === 0 ? (
                 <WorkspaceHero
                   activeCompanyName={activeCompanyName}
@@ -1356,9 +1211,12 @@ export default function App() {
                 </div>
               )}
             </AnimatePresence>
+              </>
+            )}
           </div>
         </div>
 
+        {selectedView === 'account' && (
         <div className="border-t border-neutral-200 bg-white/88 px-4 py-0 backdrop-blur-md print:hidden md:px-6">
           <div className="mx-auto max-w-7xl">
             {uploadedFile && (
@@ -1504,6 +1362,7 @@ export default function App() {
             </div>
           </div>
         </div>
+        )}
 
         <div id="print-root" className="hidden">
           {printData && (
