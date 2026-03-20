@@ -72,21 +72,15 @@ export async function fetchNews(
     REPORT MODE:
     Provide a comprehensive strategic intelligence report optimized for account planning.
 
-    For EACH selected OpCo (or the main company if no OpCo is selected), structure your analysis with these headings:
+    For EACH selected OpCo (or the main company if no OpCo is selected), you must produce all four strategic lenses.
+    Do not leave any lens empty.
+    Each lens must contain at least 2 concrete bullets grounded in current facts.
 
-    # [OpCo Name]
-
-    ## Recency & Material News
-    Focus on what is most recent, what changed, and why it matters now.
-
-    ## Insights & Opportunities
-    Explain the commercial implications, likely buying signals, urgency, funding paths, or near-term openings.
-
-    ## Key Client Stakeholders
-    Identify the client roles or named stakeholders implicated by the news and why each matters.
-
-    ## Talking Points & Attack Strategy
-    Give specific outreach angles, meeting talking points, objections to anticipate, and next-step actions for the account team.
+    REQUIRED LENSES:
+    1. Recency & Material News: the latest developments and why they matter now
+    2. Insights & Opportunities: concrete commercial openings, urgency, or buying motion
+    3. Key Client Stakeholders: named people or likely buyer roles and why each matters
+    4. Talking Points & Attack Strategy: practical outreach angles, objections, and next-step actions
   `;
 
   const prompt = `
@@ -110,6 +104,8 @@ export async function fetchNews(
     1. DO NOT include a standalone section titled "Keywords", "Key Terms", or anything similar.
     2. DO NOT add a separate keyword appendix, glossary, or source list inside the main markdown body.
     3. Instead, naturally weave the important strategic terms directly into the report text so they can be highlighted inline.
+    4. In report mode, make every strategic lens materially useful. Do not collapse multiple lenses into one section.
+    5. If one lens has weaker direct evidence, infer cautiously from the reported facts and state the likely implication rather than leaving the lens blank.
 
     KEYWORD EXTRACTION:
     Identify 3-5 critical strategic terms or technical concepts from your response and wrap them in **double asterisks**.
@@ -120,8 +116,43 @@ export async function fetchNews(
     Prefer company leadership pages, investor relations governance pages, official bios, or LinkedIn profile URLs. Do not use Reddit, forums, or low-quality people-search sources.
   `;
 
+  if (userQuery) {
+    const parsed = await requestStructured<{
+      text: string;
+      contacts: Array<{
+        name: string;
+        title: string;
+        linkedinUrl: string;
+        relevance: string;
+        avatarUrl?: string;
+      }>;
+      keywords: Array<{
+        term: string;
+        summary: string;
+        sourceUrl: string;
+      }>;
+    }>({
+      input: prompt,
+      schemaName: 'wintel_news_response',
+      schema: newsSchema
+    });
+
+    return {
+      text: parsed.text,
+      contacts: parsed.contacts,
+      keywords: parsed.keywords,
+      groundingChunks: []
+    };
+  }
+
   const parsed = await requestStructured<{
-    text: string;
+    reports: Array<{
+      opcoName: string;
+      recency: string[];
+      opportunities: string[];
+      stakeholders: string[];
+      attackStrategy: string[];
+    }>;
     contacts: Array<{
       name: string;
       title: string;
@@ -136,12 +167,12 @@ export async function fetchNews(
     }>;
   }>({
     input: prompt,
-    schemaName: 'wintel_news_response',
-    schema: newsSchema
+    schemaName: 'wintel_structured_account_report',
+    schema: reportNewsSchema
   });
 
   return {
-    text: parsed.text,
+    text: formatStructuredReports(parsed.reports),
     contacts: parsed.contacts,
     keywords: parsed.keywords,
     groundingChunks: []
@@ -284,6 +315,56 @@ const newsSchema = {
   },
   required: ['text', 'contacts', 'keywords']
 } as const;
+
+const reportNewsSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    reports: {
+      type: 'array',
+      minItems: 1,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          opcoName: { type: 'string' },
+          recency: { type: 'array', minItems: 2, items: { type: 'string' } },
+          opportunities: { type: 'array', minItems: 2, items: { type: 'string' } },
+          stakeholders: { type: 'array', minItems: 2, items: { type: 'string' } },
+          attackStrategy: { type: 'array', minItems: 2, items: { type: 'string' } }
+        },
+        required: ['opcoName', 'recency', 'opportunities', 'stakeholders', 'attackStrategy']
+      }
+    },
+    contacts: newsSchema.properties.contacts,
+    keywords: newsSchema.properties.keywords
+  },
+  required: ['reports', 'contacts', 'keywords']
+} as const;
+
+function formatStructuredReports(reports: Array<{
+  opcoName: string;
+  recency: string[];
+  opportunities: string[];
+  stakeholders: string[];
+  attackStrategy: string[];
+}>) {
+  return reports
+    .map((report) => `# ${report.opcoName}
+
+## Recency & Material News
+${report.recency.map((item) => `- ${item}`).join('\n')}
+
+## Insights & Opportunities
+${report.opportunities.map((item) => `- ${item}`).join('\n')}
+
+## Key Client Stakeholders
+${report.stakeholders.map((item) => `- ${item}`).join('\n')}
+
+## Talking Points & Attack Strategy
+${report.attackStrategy.map((item) => `- ${item}`).join('\n')}`)
+    .join('\n\n');
+}
 
 const timelineSchema = {
   type: 'object',
