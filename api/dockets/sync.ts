@@ -13,6 +13,8 @@ export default async function handler(req: IncomingMessage & { url?: string }, r
 
     const url = new URL(req.url || '/api/dockets/sync', 'https://wintel.local');
     const forceSend = url.searchParams.get('force') === 'true';
+    const state = parseState(url.searchParams.get('state'));
+    const utilityType = parseUtilityType(url.searchParams.get('utilityType'));
     const authMode = getSyncAuthMode(req);
     if (authMode === 'unauthorized') {
       res.statusCode = 401;
@@ -22,7 +24,7 @@ export default async function handler(req: IncomingMessage & { url?: string }, r
     }
 
     const user = authMode === 'user' ? await requireUser(req.headers) : null;
-    const result = await syncDocketWatches({ forceSend, userId: user?.id });
+    const result = await syncDocketWatches({ forceSend, userId: user?.id, state, utilityType });
 
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
@@ -33,6 +35,14 @@ export default async function handler(req: IncomingMessage & { url?: string }, r
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify({ error: message }));
   }
+}
+
+function parseState(value: string | null) {
+  return value === 'MA' ? 'MA' : 'NY';
+}
+
+function parseUtilityType(value: string | null) {
+  return value === 'gas' || value === 'electric' ? value : 'all';
 }
 
 function getSyncAuthMode(req: IncomingMessage & { url?: string }) {

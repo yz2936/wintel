@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import { AlertCircle, BellRing, ExternalLink, Loader2, RadioTower, RefreshCw, Send, X } from 'lucide-react';
 import { useState } from 'react';
-import type { DocketWatchEvent, DocketWatchSubscription, DocketWatchTarget } from '../services/dockets';
+import type { DocketWatchEvent, DocketWatchSubscription, DocketWatchTarget, UtilityFilter } from '../services/dockets';
 
 type DocketChatMessage = {
   role: 'user' | 'assistant';
@@ -59,6 +59,10 @@ function toBulletPoints(text: string | null | undefined) {
 }
 
 interface DocketWorkspaceProps {
+  selectedState: 'NY' | 'MA';
+  onSelectState: (state: 'NY' | 'MA') => void;
+  selectedUtilityType: UtilityFilter;
+  onSelectUtilityType: (utilityType: UtilityFilter) => void;
   subscription: DocketWatchSubscription | null;
   targets: DocketWatchTarget[];
   events: DocketWatchEvent[];
@@ -74,6 +78,10 @@ interface DocketWorkspaceProps {
 }
 
 export function DocketWorkspace({
+  selectedState,
+  onSelectState,
+  selectedUtilityType,
+  onSelectUtilityType,
   subscription,
   targets,
   events,
@@ -112,13 +120,41 @@ export function DocketWorkspace({
             </div>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-brand-navy">2026 rate case filing monitor</h1>
             <p className="mt-3 text-sm leading-6 text-neutral-600">
-              This workspace focuses on 2026 rate case filings by default. Use the ask box below if you want older material such as 2025 filings, additional docket context, or a deeper account-planning readout.
+              Switch between supported states and gas or electric views to fetch the relevant 2026 rate case filings for that docket set. Use the ask box below if you want older material such as 2025 filings, additional docket context, or a deeper account-planning readout.
             </p>
             <p className="mt-3 text-sm leading-6 text-neutral-700">
               {loading ? 'Loading watch status...' : status}
             </p>
           </div>
           <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 p-1">
+              {(['NY', 'MA'] as const).map((state) => (
+                <button
+                  key={state}
+                  type="button"
+                  onClick={() => onSelectState(state)}
+                  className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${selectedState === state ? 'bg-brand-navy text-white shadow-sm' : 'text-neutral-600 hover:bg-white hover:text-brand-navy'}`}
+                >
+                  {state === 'NY' ? 'New York' : 'Massachusetts'}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 p-1">
+              {([
+                { value: 'all', label: 'All' },
+                { value: 'electric', label: 'Electric' },
+                { value: 'gas', label: 'Gas' }
+              ] as const).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => onSelectUtilityType(option.value)}
+                  className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${selectedUtilityType === option.value ? 'bg-brand-navy text-white shadow-sm' : 'text-neutral-600 hover:bg-white hover:text-brand-navy'}`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               onClick={() => void onSync()}
@@ -126,7 +162,7 @@ export function DocketWorkspace({
               className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-navy px-4 text-sm font-semibold text-white shadow-lg shadow-brand-navy/15 transition-colors hover:bg-brand-navy/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              Check 2026 Filings
+              Check {selectedState} {selectedUtilityType === 'all' ? 'All Utilities' : selectedUtilityType === 'electric' ? 'Electric' : 'Gas'} 2026 Filings
             </button>
             {subscription && (
               <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
@@ -152,7 +188,7 @@ export function DocketWorkspace({
 
             {targets.length === 0 && !error ? (
               <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50/80 px-4 py-4 text-sm leading-6 text-neutral-500">
-                No active docket targets are available yet.
+                No active {selectedState} {selectedUtilityType === 'all' ? '' : `${selectedUtilityType} `}docket targets are available yet.
               </div>
             ) : (
               <div className="grid gap-4">
@@ -329,6 +365,7 @@ export function DocketWorkspace({
                 <h2 className="mt-2 break-words text-base font-semibold text-brand-navy sm:text-lg">Need more detail?</h2>
                 <p className="mt-1 break-words text-sm leading-6 text-neutral-600">
                   Defaults to 2026 filings. Ask for 2025 only when you want older material.
+                  {selectedState === 'MA' ? ' Massachusetts coverage is still in progress and may be lighter than New York.' : ''}
                 </p>
               </div>
               <button

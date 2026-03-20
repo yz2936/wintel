@@ -12,7 +12,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     const user = await requireUser(req.headers);
-    const result = await listRecentEventsForUser(user.id);
+    const url = new URL((req as IncomingMessage & { url?: string }).url || '/api/dockets/events', 'https://wintel.local');
+    const state = parseState(url.searchParams.get('state'));
+    const utilityType = parseUtilityType(url.searchParams.get('utilityType'));
+    const result = await listRecentEventsForUser(user.id, state, utilityType);
 
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
@@ -23,4 +26,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify({ error: message === 'UNAUTHORIZED' ? 'Unauthorized' : message }));
   }
+}
+
+function parseState(value: string | null) {
+  return value === 'MA' ? 'MA' : 'NY';
+}
+
+function parseUtilityType(value: string | null) {
+  return value === 'gas' || value === 'electric' ? value : 'all';
 }

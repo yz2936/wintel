@@ -6,7 +6,7 @@ import { DocketWorkspace } from './components/DocketWorkspace';
 import { LoginPage } from './components/LoginPage';
 import { fetchFocusSummary, fetchNews, fetchPlanOfAttack, Contact, KeywordInsight } from './services/gemini';
 import { login, logout, register, restoreSession, saveUserState, AuthUser, PersistedState } from './services/auth';
-import { askDocketQuestion, fetchDocketWatchEvents, runDocketWatchSync, type DocketWatchEvent, type DocketWatchSubscription, type DocketWatchTarget } from './services/dockets';
+import { askDocketQuestion, fetchDocketWatchEvents, runDocketWatchSync, type DocketWatchEvent, type DocketWatchSubscription, type DocketWatchTarget, type UtilityFilter } from './services/dockets';
 import {
   AlertCircle,
   BriefcaseBusiness,
@@ -378,6 +378,8 @@ export default function App() {
   const [docketSubscription, setDocketSubscription] = useState<DocketWatchSubscription | null>(null);
   const [docketTargets, setDocketTargets] = useState<DocketWatchTarget[]>([]);
   const [docketEvents, setDocketEvents] = useState<DocketWatchEvent[]>([]);
+  const [selectedDocketState, setSelectedDocketState] = useState<'NY' | 'MA'>('NY');
+  const [selectedDocketUtilityType, setSelectedDocketUtilityType] = useState<UtilityFilter>('all');
   const [docketLoading, setDocketLoading] = useState(false);
   const [docketSyncing, setDocketSyncing] = useState(false);
   const [docketError, setDocketError] = useState<string | null>(null);
@@ -411,8 +413,8 @@ export default function App() {
       return;
     }
 
-    void refreshDocketWatch();
-  }, [user, stateHydrated]);
+    void refreshDocketWatch(selectedDocketState, selectedDocketUtilityType);
+  }, [user, stateHydrated, selectedDocketState, selectedDocketUtilityType]);
 
   useEffect(() => {
     if (!user || !stateHydrated) {
@@ -742,7 +744,10 @@ export default function App() {
     void handleSend(undefined, query);
   };
 
-  const refreshDocketWatch = async () => {
+  const refreshDocketWatch = async (
+    state: 'NY' | 'MA' = selectedDocketState,
+    utilityType: UtilityFilter = selectedDocketUtilityType
+  ) => {
     if (!user) {
       return;
     }
@@ -751,19 +756,19 @@ export default function App() {
     setDocketError(null);
 
     try {
-      const result = await fetchDocketWatchEvents();
+      const result = await fetchDocketWatchEvents(state, utilityType);
       setDocketSubscription(result.subscription);
       setDocketTargets(result.targets);
       setDocketEvents(result.events);
 
       if (!result.subscription) {
-        setDocketStatus('Docket watch has not been initialized for this user yet.');
+        setDocketStatus(`Docket watch has not been initialized for ${state} ${formatUtilityTypeLabel(utilityType)} yet.`);
       } else if (result.targets.length === 0) {
-        setDocketStatus(`Watching weekly for ${result.subscription.recipient_email}. No active docket targets are available yet.`);
+        setDocketStatus(`Watching weekly for ${result.subscription.recipient_email}. No active ${state} ${formatUtilityTypeLabel(utilityType)} docket targets are available yet.`);
       } else if (result.events.length === 0) {
-        setDocketStatus(`Watching weekly for ${result.subscription.recipient_email}. Latest docket summaries are loaded; no change events recorded yet.`);
+        setDocketStatus(`Watching weekly for ${result.subscription.recipient_email}. Latest ${state} ${formatUtilityTypeLabel(utilityType)} docket summaries are loaded; no change events recorded yet.`);
       } else {
-        setDocketStatus(`Watching weekly for ${result.subscription.recipient_email}. ${result.events.length} recent docket event${result.events.length === 1 ? '' : 's'} loaded.`);
+        setDocketStatus(`Watching weekly for ${result.subscription.recipient_email}. ${result.events.length} recent ${state} ${formatUtilityTypeLabel(utilityType)} docket event${result.events.length === 1 ? '' : 's'} loaded.`);
       }
     } catch (loadError: any) {
       setDocketError(loadError?.message || 'Failed to load docket watch.');
@@ -778,10 +783,10 @@ export default function App() {
     setDocketError(null);
 
     try {
-      const result = await runDocketWatchSync();
+      const result = await runDocketWatchSync(selectedDocketState, selectedDocketUtilityType);
       const warningText = result.warnings.length > 0 ? ` Warnings: ${result.warnings.join(' | ')}` : '';
-      setDocketStatus(`Checked ${result.scannedTargets} active docket target${result.scannedTargets === 1 ? '' : 's'}. Created ${result.createdEvents} new event${result.createdEvents === 1 ? '' : 's'}.${warningText}`);
-      await refreshDocketWatch();
+      setDocketStatus(`Checked ${result.scannedTargets} active ${selectedDocketState} ${formatUtilityTypeLabel(selectedDocketUtilityType)} docket target${result.scannedTargets === 1 ? '' : 's'}. Created ${result.createdEvents} new event${result.createdEvents === 1 ? '' : 's'}.${warningText}`);
+      await refreshDocketWatch(selectedDocketState, selectedDocketUtilityType);
     } catch (syncError: any) {
       setDocketError(syncError?.message || 'Failed to run docket sync.');
       setDocketStatus('Docket sync failed.');
@@ -802,7 +807,7 @@ export default function App() {
     setDocketAskError(null);
 
     try {
-      const response = await askDocketQuestion(query);
+      const response = await askDocketQuestion(query, selectedDocketState, selectedDocketUtilityType);
       setDocketChatMessages((previous) => [
         ...previous,
         {
@@ -909,6 +914,10 @@ export default function App() {
           <div className="mx-auto max-w-7xl space-y-4">
             {selectedView === 'dockets' ? (
               <DocketWorkspace
+                selectedState={selectedDocketState}
+                onSelectState={setSelectedDocketState}
+                selectedUtilityType={selectedDocketUtilityType}
+                onSelectUtilityType={setSelectedDocketUtilityType}
                 subscription={docketSubscription}
                 targets={docketTargets}
                 events={docketEvents}
@@ -1337,4 +1346,12 @@ export default function App() {
       </main>
     </div>
   );
+}
+
+function formatUtilityTypeLabel(utilityType: UtilityFilter) {
+  if (utilityType === 'all') {
+    return 'all utility';
+  }
+
+  return utilityType;
 }

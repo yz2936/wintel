@@ -13,7 +13,12 @@ export default async function handler(req: IncomingMessage & { body?: any }, res
 
     const user = await requireUser(req.headers);
     const body = await readJsonBody(req);
-    const result = await answerDocketQuestion(user.id, typeof body?.question === 'string' ? body.question : '');
+    const result = await answerDocketQuestion(
+      user.id,
+      typeof body?.question === 'string' ? body.question : '',
+      body?.state === 'MA' ? 'MA' : 'NY',
+      body?.utilityType === 'gas' || body?.utilityType === 'electric' ? body.utilityType : 'all'
+    );
 
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');

@@ -52,22 +52,24 @@ export type DocketAskResponse = {
   scope: string;
 };
 
-export async function fetchDocketWatchEvents(): Promise<DocketWatchEventsResponse> {
-  return requestWithSession('/api/dockets/events', {
+export type UtilityFilter = 'all' | 'electric' | 'gas';
+
+export async function fetchDocketWatchEvents(state: 'NY' | 'MA', utilityType: UtilityFilter): Promise<DocketWatchEventsResponse> {
+  return requestWithSession(`/api/dockets/events?state=${encodeURIComponent(state)}&utilityType=${encodeURIComponent(utilityType)}`, {
     method: 'GET'
   });
 }
 
-export async function runDocketWatchSync(): Promise<DocketWatchSyncResponse> {
-  return requestWithSession('/api/dockets/sync', {
+export async function runDocketWatchSync(state: 'NY' | 'MA', utilityType: UtilityFilter): Promise<DocketWatchSyncResponse> {
+  return requestWithSession(`/api/dockets/sync?state=${encodeURIComponent(state)}&utilityType=${encodeURIComponent(utilityType)}`, {
     method: 'POST'
   });
 }
 
-export async function askDocketQuestion(question: string): Promise<DocketAskResponse> {
+export async function askDocketQuestion(question: string, state: 'NY' | 'MA', utilityType: UtilityFilter): Promise<DocketAskResponse> {
   return requestWithSession('/api/dockets/ask', {
     method: 'POST',
-    body: JSON.stringify({ question })
+    body: JSON.stringify({ question, state, utilityType })
   });
 }
 

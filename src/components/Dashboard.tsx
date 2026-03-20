@@ -144,6 +144,7 @@ function OpCoSection({ text, opcoName, functionNames, selectedYear, keywords, gr
         <div className="grid gap-3 lg:grid-cols-2">
           {prioritySections.map((section) => {
             const Icon = section.icon;
+            const snapshotBullets = buildStrategicSnapshot(section.body);
             return (
               <div key={`${opcoName}-${section.key}`} className="overflow-hidden rounded-2xl border border-neutral-200 bg-[linear-gradient(180deg,#ffffff_0%,#faf7ff_100%)] shadow-sm">
                 <div className="border-b border-neutral-200 px-4 py-3">
@@ -154,7 +155,39 @@ function OpCoSection({ text, opcoName, functionNames, selectedYear, keywords, gr
                   <p className="mt-2 text-xs leading-5 text-neutral-500">{section.subtitle}</p>
                 </div>
                 <div className="px-4 py-4">
-                  {section.body ? (
+                  {snapshotBullets.length > 0 ? (
+                    <ul className="space-y-2.5">
+                      {snapshotBullets.map((bullet, index) => (
+                        <li key={`${section.key}-${index}`} className="flex gap-2 text-sm leading-6 text-neutral-700">
+                          <span className="mt-[8px] h-1.5 w-1.5 shrink-0 rounded-full bg-brand-magenta" />
+                          <span>{bullet}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm leading-6 text-neutral-500">Not a primary emphasis in this brief.</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {prioritySections.some((section) => section.body.trim()) && (
+          <div className="mt-4 rounded-2xl border border-neutral-200 bg-white p-4">
+            <div className="mb-4 flex items-center gap-2">
+              <ArrowUpRight className="h-4 w-4 text-brand-magenta" />
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400">Detailed Readout</p>
+            </div>
+            <div className="space-y-4">
+              {prioritySections
+                .filter((section) => section.body.trim())
+                .map((section) => (
+                  <div key={`${opcoName}-${section.key}-detail`} className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4">
+                    <div className="mb-3 flex items-center gap-2 text-brand-magenta">
+                      <section.icon className="h-4 w-4" />
+                      <h4 className="text-sm font-semibold text-brand-navy">{section.title}</h4>
+                    </div>
                     <div className="prose prose-sm prose-neutral max-w-none prose-headings:font-semibold prose-headings:text-brand-navy prose-a:text-brand-magenta prose-a:no-underline hover:prose-a:underline print:prose-a:text-black">
                       <Markdown
                         remarkPlugins={[remarkGfm]}
@@ -167,14 +200,11 @@ function OpCoSection({ text, opcoName, functionNames, selectedYear, keywords, gr
                         {section.body}
                       </Markdown>
                     </div>
-                  ) : (
-                    <p className="text-sm leading-6 text-neutral-500">No material was generated for this lens in the current brief.</p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
 
         {overflowNarrative && (
           <div className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50/80 p-4">
@@ -458,4 +488,41 @@ function extractFallbackSectionBody(text: string, aliases: readonly string[]) {
 
   const match = sections.find((section) => aliases.some((alias) => section.heading.includes(alias)));
   return match ? match.body.join('\n').trim() : '';
+}
+
+function buildStrategicSnapshot(body: string) {
+  if (!body.trim()) {
+    return [];
+  }
+
+  const plainText = body
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+    .replace(/[*_`>#-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const bullets = body
+    .split('\n')
+    .map((line) => line.replace(/^[-*•\d.)\s]+/, '').trim())
+    .filter(Boolean)
+    .filter((line) => line.length > 24)
+    .slice(0, 2);
+
+  if (bullets.length > 0) {
+    return bullets.map(compactSentence);
+  }
+
+  return plainText
+    .split(/(?<=[.?!])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length > 24)
+    .slice(0, 2)
+    .map(compactSentence);
+}
+
+function compactSentence(sentence: string) {
+  return sentence
+    .replace(/\s+/g, ' ')
+    .replace(/^Summary:\s*/i, '')
+    .trim();
 }

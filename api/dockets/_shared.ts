@@ -95,6 +95,25 @@ type ParsedSource = {
   payload: Record<string, unknown>;
 };
 
+type MassachusettsAgentResult = {
+  pageTitle: string;
+  summaryText: string;
+  docketNumbers: string[];
+  snippet: string;
+  officialUrl: string;
+  documents: Array<{
+    title: string;
+    filedDate: string;
+    documentType: string;
+    filingOnBehalfOf: string;
+    officialUrl: string;
+    summary: string;
+    keyTopics: string[];
+    stakeholders: string[];
+    accountPlanningAngle: string;
+  }>;
+};
+
 type GeneratedEvent = {
   sourceEventKey: string;
   eventType: string;
@@ -309,7 +328,7 @@ export async function bootstrapDefaultWatchlist(user: AuthenticatedUser) {
     match_terms: target.matchTerms,
     docket_numbers: target.docketNumbers,
     metadata: target.metadata || {},
-    is_active: target.state === 'NY',
+    is_active: true,
     updated_at: now
   }));
 
@@ -328,13 +347,13 @@ export async function bootstrapDefaultWatchlist(user: AuthenticatedUser) {
     targetCount: targets.length,
     notes: [
       'National Grid New York dockets are active in the weekly digest by default.',
-      'Massachusetts National Grid and Eversource targets are seeded but currently inactive because the public mass.gov pages are blocking serverless polling.',
+      'Massachusetts National Grid and Eversource targets are also active and use official-source retrieval rather than direct mass.gov page polling.',
       'No New York Eversource utility docket footprint is seeded in this v1.'
     ]
   };
 }
 
-export async function listRecentEventsForUser(userId: string) {
+export async function listRecentEventsForUser(userId: string, state: 'NY' | 'MA' = 'NY', utilityType: 'all' | 'electric' | 'gas' = 'all') {
   const admin = getAdminClient();
   const subscription = await admin
     .from('docket_watch_subscriptions')
@@ -358,8 +377,8 @@ export async function listRecentEventsForUser(userId: string) {
     .from('docket_watch_targets')
     .select('id, source_key, state, account_name, utility_type, display_name, provider, source_url, docket_numbers')
     .eq('subscription_id', subscription.data.id)
-    .eq('is_active', true)
-    .eq('state', 'NY')
+    .eq('state', state)
+    .in('utility_type', utilityType === 'all' ? ['electric', 'gas'] : [utilityType])
     .order('display_name', { ascending: true });
 
   if (targets.error) {
@@ -397,6 +416,7 @@ export async function listRecentEventsForUser(userId: string) {
     .from('docket_watch_events')
     .select('id, target_id, subscription_id, source_event_key, event_type, title, summary, source_url, event_date, payload, created_at')
     .eq('subscription_id', subscription.data.id)
+    .in('target_id', targetRows.map((target) => target.id).length > 0 ? targetRows.map((target) => target.id) : ['__none__'])
     .order('event_date', { ascending: false })
     .limit(25);
 
@@ -427,13 +447,13 @@ export async function listRecentEventsForUser(userId: string) {
   };
 }
 
-export async function answerDocketQuestion(userId: string, question: string) {
+export async function answerDocketQuestion(userId: string, question: string, state: 'NY' | 'MA' = 'NY', utilityType: 'all' | 'electric' | 'gas' = 'all') {
   const trimmedQuestion = question.trim();
   if (!trimmedQuestion) {
     throw new Error('Question is required.');
   }
 
-  const context = await listRecentEventsForUser(userId);
+  const context = await listRecentEventsForUser(userId, state, utilityType);
   const apiKey = process.env.OPENAI_API_KEY || '';
   if (!apiKey) {
     throw new Error('Missing OPENAI_API_KEY in Vercel environment variables.');
@@ -443,7 +463,7 @@ export async function answerDocketQuestion(userId: string, question: string) {
   const prompt = `
 You are Wintel's docket agent for account planning and business development.
 
-Use the supplied latest watch context first. If the user explicitly asks for 2025 or older filings, you may use web search to retrieve official NY DPS filings from those years. Otherwise, stay focused on 2026 only.
+Use the supplied latest watch context first. If the user explicitly asks for 2025 or older filings, you may use web search to retrieve official filings from the selected state from those years. Otherwise, stay focused on 2026 only.
 
 USER QUESTION:
 ${trimmedQuestion}
@@ -451,9 +471,15 @@ ${trimmedQuestion}
 RULES:
 - Default to 2026 filings only
 - Only include 2025 or older filings if the user's question explicitly asks for them
-- Use only official NY DPS sources on documents.dps.ny.gov when you need external retrieval
+- Use only official sources from the selected state when you need external retrieval
 - Answer from an account-planning perspective: key implications, relevant stakeholders, what changed, and recommended next move
 - Be concise but useful
+
+SELECTED STATE:
+${state}
+
+UTILITY FILTER:
+${utilityType}
 
 CURRENT WATCH CONTEXT:
 ${JSON.stringify(context.targets, null, 2)}
@@ -479,7 +505,7 @@ ${JSON.stringify(context.events.slice(0, 8), null, 2)}
   };
 }
 
-export async function syncDocketWatches(options?: { forceSend?: boolean; userId?: string }) {
+export async function syncDocketWatches(options?: { forceSend?: boolean; userId?: string; state?: 'NY' | 'MA'; utilityType?: 'all' | 'electric' | 'gas' }) {
   const admin = getAdminClient();
   const warnings: string[] = [];
   let query = admin
@@ -528,7 +554,23 @@ export async function syncDocketWatches(options?: { forceSend?: boolean; userId?
   for (const subscription of (subscriptions.data ?? []) as WatchSubscriptionRow[]) {
     const createdForSubscription: WatchEventRow[] = [];
 
-    for (const target of subscription.docket_watch_targets.filter((item) => item.is_active && item.state === 'NY')) {
+    const selectedState = options?.state || 'NY';
+    const selectedUtilityType = options?.utilityType || 'all';
+    for (const target of subscription.docket_watch_targets.filter((item) => {
+      if (item.state !== selectedState) {
+        return false;
+      }
+
+      if (selectedUtilityType !== 'all' && item.utility_type !== selectedUtilityType) {
+        return false;
+      }
+
+      if (options?.userId) {
+        return true;
+      }
+
+      return item.is_active;
+    })) {
       scannedTargets += 1;
       try {
         const event = await syncSingleTarget(admin, subscription, target);
@@ -608,8 +650,7 @@ export async function syncDocketWatches(options?: { forceSend?: boolean; userId?
 }
 
 async function syncSingleTarget(admin: SupabaseClient, subscription: WatchSubscriptionRow, target: WatchTargetRow) {
-  const html = await fetchHtml(target.source_url);
-  const parsed = await enrichParsedSourceWithAgentSummary(target, parseSource(target, html));
+  const parsed = await enrichParsedSourceWithAgentSummary(target, await loadParsedSource(target));
   const previous = await admin
     .from('docket_watch_snapshots')
     .select('snapshot_hash, summary_text, payload, fetched_at')
@@ -700,6 +741,15 @@ async function syncSingleTarget(admin: SupabaseClient, subscription: WatchSubscr
   return insertedEvent.data as WatchEventRow;
 }
 
+async function loadParsedSource(target: WatchTargetRow) {
+  if (target.state === 'MA') {
+    return loadMassachusettsParsedSource(target);
+  }
+
+  const html = await fetchHtml(target.source_url);
+  return parseSource(target, html);
+}
+
 function parseSource(target: WatchTargetRow, html: string): ParsedSource {
   switch (target.extractor_type) {
     case 'ny_case_filings':
@@ -730,6 +780,16 @@ async function enrichParsedSourceWithAgentSummary(target: WatchTargetRow, parsed
       };
     }
 
+    if (target.state === 'MA') {
+      return {
+        ...parsed,
+        payload: {
+          ...parsed.payload,
+          fallbackSummary
+        }
+      };
+    }
+
     const summaryText = await summarizeDocketSnapshot(target, parsed);
     return {
       ...parsed,
@@ -743,6 +803,67 @@ async function enrichParsedSourceWithAgentSummary(target: WatchTargetRow, parsed
     console.warn(`Docket AI summary failed for ${target.source_key}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return parsed;
   }
+}
+
+async function loadMassachusettsParsedSource(target: WatchTargetRow): Promise<ParsedSource> {
+  const apiKey = process.env.OPENAI_API_KEY || '';
+  if (!apiKey) {
+    throw new Error('Missing OPENAI_API_KEY in Vercel environment variables.');
+  }
+
+  const result = await requestStructured<MassachusettsAgentResult>({
+    input: `
+You are monitoring Massachusetts utility rate case activity for account planning.
+
+Use web search to retrieve only official Massachusetts sources for this target. Prefer:
+- mass.gov
+- official Massachusetts DPU pages
+- official hearing, filing, notice, or case listing pages
+
+TARGET:
+- Account: ${target.account_name}
+- Utility type: ${target.utility_type}
+- State: ${target.state}
+- Docket label: ${target.display_name}
+- Provider: ${target.provider}
+- Seed source URL: ${target.source_url}
+- Match terms: ${target.match_terms.join(', ')}
+- Docket numbers already associated: ${target.docket_numbers.join(', ') || 'none'}
+
+Return:
+- pageTitle: official page or docket title
+- summaryText: exactly 3 short bullet points on what the latest official Massachusetts rate case information says, why it matters commercially, and what stakeholder/outreach angle matters
+- docketNumbers: any relevant 2026 docket numbers you can verify from official Massachusetts sources
+- snippet: a concise excerpt-style summary of the official page contents
+- officialUrl: best official Massachusetts source URL
+- documents: up to 5 most relevant 2026 official Massachusetts rate case documents or notices with tight summaries
+
+Rules:
+- Use only official Massachusetts sources
+- Stay focused on 2026 by default
+- Prefer rate case filings, hearings, notices, schedules, testimony, settlements, or commission actions
+- Exclude low-signal or duplicate material
+- If an official source cannot verify a field, return an empty string or empty array
+- Keep summaries useful for account planning and development
+    `.trim(),
+    schemaName: 'wintel_massachusetts_docket_summary',
+    schema: massachusettsDocketSchema,
+    useWebSearch: true
+  });
+
+  const payload = {
+    title: result.pageTitle || target.display_name,
+    docketNumbers: result.docketNumbers || [],
+    snippet: result.snippet || '',
+    officialUrl: result.officialUrl || target.source_url,
+    documents: result.documents || []
+  };
+
+  return {
+    snapshotHash: stableHash(JSON.stringify(payload)),
+    summaryText: result.summaryText || `${target.display_name}. Massachusetts source summary loaded.`,
+    payload
+  };
 }
 
 async function buildNyDocketIntelligence(target: WatchTargetRow, parsed: ParsedSource) {
@@ -1359,4 +1480,45 @@ const docketDocumentSchema = {
     }
   },
   required: ['summaryText', 'documents']
+} as const;
+
+const massachusettsDocketSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    pageTitle: { type: 'string' },
+    summaryText: { type: 'string' },
+    docketNumbers: {
+      type: 'array',
+      items: { type: 'string' }
+    },
+    snippet: { type: 'string' },
+    officialUrl: { type: 'string' },
+    documents: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          title: { type: 'string' },
+          filedDate: { type: 'string' },
+          documentType: { type: 'string' },
+          filingOnBehalfOf: { type: 'string' },
+          officialUrl: { type: 'string' },
+          summary: { type: 'string' },
+          keyTopics: {
+            type: 'array',
+            items: { type: 'string' }
+          },
+          stakeholders: {
+            type: 'array',
+            items: { type: 'string' }
+          },
+          accountPlanningAngle: { type: 'string' }
+        },
+        required: ['title', 'filedDate', 'documentType', 'filingOnBehalfOf', 'officialUrl', 'summary', 'keyTopics', 'stakeholders', 'accountPlanningAngle']
+      }
+    }
+  },
+  required: ['pageTitle', 'summaryText', 'docketNumbers', 'snippet', 'officialUrl', 'documents']
 } as const;
