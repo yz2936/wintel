@@ -73,29 +73,6 @@ const QUICK_CHAT_TEMPLATES = [
   }
 ];
 
-const PRIORITY_TILES = [
-  {
-    title: 'Recency of Affairs',
-    subtitle: 'What changed most recently and what is materially new',
-    icon: Clock3
-  },
-  {
-    title: 'Insights & Opportunities',
-    subtitle: 'Where the buying motion, pressure, and commercial opening live',
-    icon: BriefcaseBusiness
-  },
-  {
-    title: 'Key Client Stakeholders',
-    subtitle: 'Who is implicated in the news and why they matter',
-    icon: UsersRound
-  },
-  {
-    title: 'Talking Points & Attack Strategy',
-    subtitle: 'How to show up with a sharper point of view',
-    icon: Target
-  }
-];
-
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -1227,21 +1204,6 @@ export default function App() {
                       </button>
                     </div>
                   )}
-
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {PRIORITY_TILES.map((tile) => {
-                      const Icon = tile.icon;
-                      return (
-                        <div key={tile.title} className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-3">
-                          <div className="flex items-center gap-2 text-brand-magenta">
-                            <Icon className="h-3.5 w-3.5" />
-                            <span className="text-[10px] font-bold uppercase tracking-[0.18em]">{tile.title}</span>
-                          </div>
-                          <p className="mt-2 text-xs leading-5 text-neutral-600">{tile.subtitle}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
 
                   <div className="grid gap-2 sm:grid-cols-2">
                     {QUICK_CHAT_TEMPLATES.map((template) => {
