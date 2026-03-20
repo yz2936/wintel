@@ -1029,7 +1029,7 @@ export default function App() {
                         <div className="mt-4">
                           <div className="mb-3 flex items-center gap-2 text-brand-magenta">
                             <RadioTower className="h-4 w-4" />
-                            <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Latest Docket Summaries</span>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Latest Rate Case Snapshot</span>
                           </div>
                           <div className="grid gap-3 md:grid-cols-2">
                             {docketTargets.map((target) => (
@@ -1057,6 +1057,7 @@ export default function App() {
                                 </p>
                                 {getDocketDocuments(target.latest_payload).length > 0 && (
                                   <div className="mt-3 space-y-3 border-t border-neutral-100 pt-3">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Most Relevant Rate Case Documents</p>
                                     {getDocketDocuments(target.latest_payload).slice(0, 5).map((document, index) => (
                                       <div key={`${target.id}-document-${index}`} className="rounded-xl border border-neutral-200 bg-neutral-50/70 px-3 py-3">
                                         <div className="flex items-start justify-between gap-3">

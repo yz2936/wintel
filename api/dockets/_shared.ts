@@ -736,6 +736,8 @@ Return:
 
 Rules:
 - Prefer filing-item pages or direct document pages for this exact case number
+- Prioritize documents that are most relevant to the actual rate case filing and outcome, such as the utility filing itself, testimony, staff positions, intervenor comments, settlement papers, judge notices, briefing schedules, and commission notices that change timing or leverage
+- Exclude low-signal items like routine correspondence, generic service lists, duplicate notices, and public comments unless they are directly material to the rate case posture
 - Do not include unofficial sources
 - If some fields are unavailable, return an empty string for that field
 - Stakeholders should be named people or roles implicated by the filing when visible; otherwise use likely client roles
