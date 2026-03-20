@@ -159,7 +159,7 @@ export function DocketWorkspace({
               type="button"
               onClick={() => void onSync()}
               disabled={loading || syncing}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-navy px-4 text-sm font-semibold text-white shadow-lg shadow-brand-navy/15 transition-colors hover:bg-brand-navy/90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-brand-navy px-3 text-xs font-semibold text-white shadow-lg shadow-brand-navy/15 transition-colors hover:bg-brand-navy/90 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4"
             >
               {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               Check {selectedState} {selectedUtilityType === 'all' ? 'All Utilities' : selectedUtilityType === 'electric' ? 'Electric' : 'Gas'} 2026 Filings
@@ -379,48 +379,22 @@ export function DocketWorkspace({
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
-              <div className="flex flex-wrap gap-2">
-                {[
-                  'What are the most important 2026 filings I should care about?',
-                  'Which stakeholders matter most across these 2026 filings?',
-                  'Show me 2025 filings only for this docket watch'
-                ].map((prompt) => (
-                  <button
-                    key={prompt}
-                    type="button"
-                    onClick={() => setInput(prompt)}
-                    className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-600 transition-colors hover:border-brand-magenta/35 hover:text-brand-magenta"
-                  >
-                    {prompt}
-                  </button>
-                ))}
-              </div>
-
-              <form onSubmit={(event) => void handleSubmit(event)} className="mt-3 space-y-3">
-                <textarea
-                  value={input}
-                  onChange={(event) => setInput(event.target.value)}
-                  placeholder="Ask for deeper filing analysis. Example: What do the 2026 filings imply for account strategy, and who should I engage first?"
-                  className="min-h-[116px] w-full resize-none rounded-2xl border border-neutral-200 bg-neutral-50/80 px-4 py-4 text-sm leading-6 text-neutral-800 transition-all placeholder:text-neutral-400 focus:border-brand-magenta/35 focus:outline-none sm:min-h-[124px]"
-                />
-                <div className="flex items-center justify-between gap-3">
-                  <p className="max-w-[60%] text-xs leading-5 text-neutral-500">
-                    Older years stay out unless you ask for them.
-                  </p>
-                  <button
-                    type="submit"
-                    disabled={askLoading || !input.trim()}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-magenta px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-magenta-dark disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {askLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    Ask
-                  </button>
-                </div>
-              </form>
-
-              {askError && (
-                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {askError}
+              {chatMessages.length === 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    'What are the most important 2026 filings I should care about?',
+                    'Which stakeholders matter most across these 2026 filings?',
+                    'Show me 2025 filings only for this docket watch'
+                  ].map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => setInput(prompt)}
+                      className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-600 transition-colors hover:border-brand-magenta/35 hover:text-brand-magenta"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
                 </div>
               )}
 
@@ -447,6 +421,34 @@ export function DocketWorkspace({
                   </div>
                 )}
               </div>
+
+              {askError && (
+                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {askError}
+                </div>
+              )}
+
+              <form onSubmit={(event) => void handleSubmit(event)} className="mt-3 border-t border-neutral-200 bg-white pt-3">
+                <textarea
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  placeholder="Ask for deeper filing analysis. Example: What do the 2026 filings imply for account strategy, and who should I engage first?"
+                  className="min-h-[112px] w-full resize-none rounded-2xl border border-neutral-200 bg-neutral-50/80 px-4 py-4 text-sm leading-6 text-neutral-800 transition-all placeholder:text-neutral-400 focus:border-brand-magenta/35 focus:outline-none"
+                />
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <p className="max-w-[60%] text-xs leading-5 text-neutral-500">
+                    Older years stay out unless you ask for them.
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={askLoading || !input.trim()}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-magenta px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-magenta-dark disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {askLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    Ask
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         ) : (
