@@ -121,7 +121,7 @@ export function DocketWorkspace({
         )}
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
         <div className="space-y-5">
           <div className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-2 text-brand-magenta">
@@ -136,26 +136,27 @@ export function DocketWorkspace({
             ) : (
               <div className="grid gap-4">
                 {targets.map((target) => (
-                  <div key={target.id} className="rounded-2xl border border-neutral-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbf8ff_100%)] px-4 py-4 shadow-sm">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
+                  <div key={target.id} className="min-w-0 rounded-2xl border border-neutral-200 bg-[linear-gradient(180deg,#ffffff_0%,#fbf8ff_100%)] px-4 py-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
                         <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-magenta">
                           {target.state} {target.utility_type}
                         </span>
-                        <h3 className="mt-2 text-base font-semibold text-brand-navy">{target.display_name}</h3>
+                        <h3 className="mt-2 break-words text-base font-semibold text-brand-navy">{target.display_name}</h3>
                       </div>
                       <a
                         href={target.source_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-400 transition-colors hover:border-brand-magenta/35 hover:text-brand-magenta"
+                        className="inline-flex shrink-0 items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-neutral-500 transition-colors hover:border-brand-magenta/35 hover:text-brand-magenta"
                         title="Open official docket page"
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
+                        Source
                       </a>
                     </div>
 
-                    <p className="mt-3 text-sm leading-6 text-neutral-600">
+                    <p className="mt-3 break-words text-sm leading-6 text-neutral-600">
                       {target.summary_text || 'No 2026 snapshot has been stored yet. Run a docket check to fetch the latest official summary.'}
                     </p>
 
@@ -172,46 +173,56 @@ export function DocketWorkspace({
 
                     {getDocketDocuments(target.latest_payload).length > 0 && (
                       <div className="mt-4 space-y-3 border-t border-neutral-100 pt-4">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Most Relevant 2026 Rate Case Documents</p>
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">Most Relevant 2026 Rate Case Documents</p>
+                          <span className="text-[11px] text-neutral-400">{Math.min(getDocketDocuments(target.latest_payload).length, 5)} shown</span>
+                        </div>
                         {getDocketDocuments(target.latest_payload).slice(0, 5).map((document, index) => (
                           <div key={`${target.id}-document-${index}`} className="rounded-xl border border-neutral-200 bg-white px-3 py-3">
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-sm font-semibold leading-5 text-brand-navy">{document.title}</p>
-                                <p className="mt-1 text-[11px] text-neutral-500">
-                                  {[document.filedDate, document.documentType, document.filingOnBehalfOf].filter(Boolean).join(' | ') || 'Official docket document'}
-                                </p>
+                            <div className="min-w-0">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="break-words pr-2 text-sm font-semibold leading-5 text-brand-navy">{document.title}</p>
+                                </div>
+                                <span className="shrink-0 rounded-full border border-neutral-200 bg-neutral-50 px-2 py-1 text-[10px] font-semibold text-neutral-500">
+                                  Doc {index + 1}
+                                </span>
                               </div>
-                              {document.officialUrl && (
-                                <a
-                                  href={document.officialUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="rounded-full border border-neutral-200 bg-neutral-50 px-2 py-1 text-[10px] font-semibold text-neutral-500 transition-colors hover:border-brand-magenta/35 hover:text-brand-magenta"
-                                >
-                                  Open doc
-                                </a>
-                              )}
+                              <p className="mt-1 break-words text-[11px] text-neutral-500">
+                                {[document.filedDate, document.documentType, document.filingOnBehalfOf].filter(Boolean).join(' | ') || 'Official docket document'}
+                              </p>
                             </div>
                             {document.summary && (
-                              <p className="mt-2 text-xs leading-5 text-neutral-600">{document.summary}</p>
+                              <p className="mt-2 break-words text-xs leading-5 text-neutral-600">{document.summary}</p>
                             )}
                             {document.keyTopics.length > 0 && (
                               <div className="mt-2 flex flex-wrap gap-1.5">
-                                {document.keyTopics.map((topic) => (
+                                {document.keyTopics.slice(0, 4).map((topic) => (
                                   <span key={`${target.id}-${document.title}-${topic}`} className="rounded-full bg-neutral-50 px-2 py-1 text-[10px] font-semibold text-neutral-600">
                                     {topic}
                                   </span>
                                 ))}
                               </div>
                             )}
-                            {document.stakeholders.length > 0 && (
-                              <p className="mt-2 text-[11px] leading-5 text-neutral-600">
-                                <span className="font-semibold text-brand-navy">Stakeholders:</span> {document.stakeholders.join(', ')}
-                              </p>
-                            )}
+                            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] leading-5 text-neutral-600">
+                              {document.stakeholders.length > 0 && (
+                                <span className="break-words">
+                                  <span className="font-semibold text-brand-navy">Stakeholders:</span> {document.stakeholders.slice(0, 4).join(', ')}
+                                </span>
+                              )}
+                              {document.officialUrl && (
+                                <a
+                                  href={document.officialUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-semibold text-brand-magenta transition-colors hover:text-brand-magenta-dark"
+                                >
+                                  View filing
+                                </a>
+                              )}
+                            </div>
                             {document.accountPlanningAngle && (
-                              <p className="mt-2 text-[11px] leading-5 text-neutral-600">
+                              <p className="mt-2 break-words text-[11px] leading-5 text-neutral-600">
                                 <span className="font-semibold text-brand-navy">Account angle:</span> {document.accountPlanningAngle}
                               </p>
                             )}
@@ -235,14 +246,14 @@ export function DocketWorkspace({
                 <BellRing className="h-4 w-4" />
                 <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Recent Change Events</span>
               </div>
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-3">
                 {events.slice(0, 6).map((event) => (
                   <a
                     key={event.id}
                     href={event.source_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group rounded-2xl border border-neutral-200 bg-neutral-50/70 px-4 py-3 transition-all hover:-translate-y-0.5 hover:border-brand-magenta/35 hover:shadow-md"
+                    className="group block rounded-2xl border border-neutral-200 bg-neutral-50/70 px-4 py-3 transition-all hover:border-brand-magenta/35 hover:shadow-md"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-magenta">
@@ -316,7 +327,7 @@ export function DocketWorkspace({
               </div>
             )}
 
-            <div className="space-y-3">
+            <div className="max-h-[560px] space-y-3 overflow-y-auto pr-1">
               {chatMessages.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50/80 px-4 py-4 text-sm leading-6 text-neutral-500">
                   Ask for more detail on the 2026 rate case filings, or explicitly request 2025 if you want prior-year material included.
