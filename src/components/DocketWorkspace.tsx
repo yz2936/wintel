@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { AlertCircle, BellRing, ExternalLink, Loader2, RadioTower, RefreshCw, Send } from 'lucide-react';
+import { AlertCircle, BellRing, ExternalLink, Loader2, RadioTower, RefreshCw, Send, X } from 'lucide-react';
 import { useState } from 'react';
 import type { DocketWatchEvent, DocketWatchSubscription, DocketWatchTarget } from '../services/dockets';
 
@@ -88,6 +88,7 @@ export function DocketWorkspace({
   chatMessages
 }: DocketWorkspaceProps) {
   const [input, setInput] = useState('');
+  const [isAgentOpen, setIsAgentOpen] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -142,8 +143,7 @@ export function DocketWorkspace({
         )}
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_360px]">
-        <div className="space-y-5">
+      <div className="space-y-5">
           <div className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-2 text-brand-magenta">
               <RadioTower className="h-4 w-4" />
@@ -315,89 +315,111 @@ export function DocketWorkspace({
               </div>
             </div>
           )}
-        </div>
+      </div>
 
-        <div className="xl:sticky xl:top-5 xl:self-start">
-        <div className="rounded-3xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-2 text-brand-magenta">
-            <BellRing className="h-4 w-4" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Ask The Docket Agent</span>
-          </div>
-          <h2 className="mt-2 text-lg font-semibold text-brand-navy">Get more detail only when you ask for it</h2>
-          <p className="mt-2 text-sm leading-6 text-neutral-600">
-            By default this page focuses on 2026 filings. Ask for older filing years, a stakeholder map, or a deeper read on one document when you need it.
-          </p>
-
-          <div className="mt-4 space-y-3">
-            <div className="flex flex-wrap gap-2">
-              {[
-                'What are the most important 2026 filings I should care about?',
-                'Which stakeholders matter most across these 2026 filings?',
-                'Show me 2025 filings only for this docket watch'
-              ].map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => setInput(prompt)}
-                  className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-600 transition-colors hover:border-brand-magenta/35 hover:text-brand-magenta"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-
-            <form onSubmit={(event) => void handleSubmit(event)} className="space-y-3">
-              <textarea
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                placeholder="Ask for deeper filing analysis. Example: What do the 2026 filings imply for account strategy, and who should I engage first?"
-                className="min-h-[132px] w-full resize-none rounded-2xl border border-neutral-200 bg-neutral-50/80 px-4 py-4 text-sm leading-6 text-neutral-800 transition-all placeholder:text-neutral-400 focus:border-brand-magenta/35 focus:outline-none"
-              />
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs leading-5 text-neutral-500">
-                  2025 or older filings are only brought in when you ask for them explicitly.
-                </p>
-                <button
-                  type="submit"
-                  disabled={askLoading || !input.trim()}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-magenta px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-magenta-dark disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {askLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  Ask
-                </button>
-              </div>
-            </form>
-
-            {askError && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {askError}
-              </div>
-            )}
-
-            <div className="max-h-[560px] space-y-3 overflow-y-auto pr-1">
-              {chatMessages.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50/80 px-4 py-4 text-sm leading-6 text-neutral-500">
-                  Ask for more detail on the 2026 rate case filings, or explicitly request 2025 if you want prior-year material included.
+      <div className="fixed bottom-5 right-5 z-40">
+        {isAgentOpen ? (
+          <div className="w-[min(420px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-[0_28px_90px_rgba(11,0,78,0.18)]">
+            <div className="flex items-start justify-between gap-3 border-b border-neutral-200 bg-[linear-gradient(135deg,#ffffff_0%,#fbf8ff_100%)] px-5 py-4">
+              <div>
+                <div className="flex items-center gap-2 text-brand-magenta">
+                  <BellRing className="h-4 w-4" />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Ask The Docket Agent</span>
                 </div>
-              ) : (
-                chatMessages.map((message, index) => (
-                  <div
-                    key={`${message.role}-${index}-${message.timestamp.toISOString()}`}
-                    className={message.role === 'user' ? 'flex justify-end' : 'flex justify-start'}
+                <h2 className="mt-2 text-lg font-semibold text-brand-navy">Need more detail?</h2>
+                <p className="mt-1 text-sm leading-6 text-neutral-600">
+                  Defaults to 2026 filings. Ask for 2025 only when you want older material.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAgentOpen(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500 transition-colors hover:bg-neutral-100"
+                title="Close docket agent"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 p-5">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  'What are the most important 2026 filings I should care about?',
+                  'Which stakeholders matter most across these 2026 filings?',
+                  'Show me 2025 filings only for this docket watch'
+                ].map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    onClick={() => setInput(prompt)}
+                    className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-600 transition-colors hover:border-brand-magenta/35 hover:text-brand-magenta"
                   >
-                    <div className={`${message.role === 'user' ? 'max-w-xl rounded-2xl rounded-tr-sm bg-brand-navy px-4 py-3 text-white' : 'w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-neutral-700'}`}>
-                      <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] opacity-60">
-                        {message.role === 'user' ? 'Your Question' : 'Docket Agent'}
-                      </div>
-                      <div className="whitespace-pre-wrap text-sm leading-6">{message.content}</div>
-                    </div>
-                  </div>
-                ))
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+
+              <form onSubmit={(event) => void handleSubmit(event)} className="space-y-3">
+                <textarea
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  placeholder="Ask for deeper filing analysis. Example: What do the 2026 filings imply for account strategy, and who should I engage first?"
+                  className="min-h-[124px] w-full resize-none rounded-2xl border border-neutral-200 bg-neutral-50/80 px-4 py-4 text-sm leading-6 text-neutral-800 transition-all placeholder:text-neutral-400 focus:border-brand-magenta/35 focus:outline-none"
+                />
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs leading-5 text-neutral-500">
+                    Older years stay out unless you ask for them.
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={askLoading || !input.trim()}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-magenta px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-magenta-dark disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {askLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    Ask
+                  </button>
+                </div>
+              </form>
+
+              {askError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {askError}
+                </div>
               )}
+
+              <div className="max-h-[360px] space-y-3 overflow-y-auto pr-1">
+                {chatMessages.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50/80 px-4 py-4 text-sm leading-6 text-neutral-500">
+                    Ask for more detail on the 2026 rate case filings, or explicitly request 2025 if you want prior-year material included.
+                  </div>
+                ) : (
+                  chatMessages.map((message, index) => (
+                    <div
+                      key={`${message.role}-${index}-${message.timestamp.toISOString()}`}
+                      className={message.role === 'user' ? 'flex justify-end' : 'flex justify-start'}
+                    >
+                      <div className={`${message.role === 'user' ? 'max-w-[90%] rounded-2xl rounded-tr-sm bg-brand-navy px-4 py-3 text-white' : 'w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-neutral-700'}`}>
+                        <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] opacity-60">
+                          {message.role === 'user' ? 'Your Question' : 'Docket Agent'}
+                        </div>
+                        <div className="whitespace-pre-wrap text-sm leading-6">{message.content}</div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
-        </div>
-        </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setIsAgentOpen(true)}
+            className="inline-flex h-14 items-center gap-3 rounded-full bg-brand-navy px-5 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(11,0,78,0.25)] transition-transform hover:-translate-y-0.5 hover:bg-brand-navy/92"
+          >
+            <BellRing className="h-4 w-4" />
+            Docket Agent
+          </button>
+        )}
       </div>
     </div>
   );

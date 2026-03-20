@@ -28,6 +28,15 @@ export default async function handler(req: IncomingMessage & { body?: any }, res
 
 async function readJsonBody(req: IncomingMessage & { body?: any }) {
   if (req.body !== undefined) {
+    if (typeof req.body === 'string') {
+      return req.body ? JSON.parse(req.body) : undefined;
+    }
+
+    if (Buffer.isBuffer(req.body)) {
+      const raw = req.body.toString('utf8');
+      return raw ? JSON.parse(raw) : undefined;
+    }
+
     return req.body;
   }
 
