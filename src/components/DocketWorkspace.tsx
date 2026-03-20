@@ -429,25 +429,25 @@ export function DocketWorkspace({
               )}
 
               <form onSubmit={(event) => void handleSubmit(event)} className="mt-3 border-t border-neutral-200 bg-white pt-3">
-                <textarea
-                  value={input}
-                  onChange={(event) => setInput(event.target.value)}
-                  placeholder="Ask for deeper filing analysis. Example: What do the 2026 filings imply for account strategy, and who should I engage first?"
-                  className="min-h-[112px] w-full resize-none rounded-2xl border border-neutral-200 bg-neutral-50/80 px-4 py-4 text-sm leading-6 text-neutral-800 transition-all placeholder:text-neutral-400 focus:border-brand-magenta/35 focus:outline-none"
-                />
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <p className="max-w-[60%] text-xs leading-5 text-neutral-500">
-                    Older years stay out unless you ask for them.
-                  </p>
+                <div className="relative">
+                  <textarea
+                    value={input}
+                    onChange={(event) => setInput(event.target.value)}
+                    placeholder="Ask for deeper filing analysis. Example: What do the 2026 filings imply for account strategy, and who should I engage first?"
+                    className="min-h-[88px] w-full resize-none rounded-2xl border border-neutral-200 bg-neutral-50/80 px-4 py-3 pr-28 text-sm leading-6 text-neutral-800 transition-all placeholder:text-neutral-400 focus:border-brand-magenta/35 focus:outline-none"
+                  />
                   <button
                     type="submit"
                     disabled={askLoading || !input.trim()}
-                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-magenta px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-magenta-dark disabled:cursor-not-allowed disabled:opacity-50"
+                    className="absolute bottom-3 right-3 inline-flex h-10 items-center gap-2 rounded-xl bg-brand-magenta px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-magenta-dark disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {askLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     Ask
                   </button>
                 </div>
+                <p className="mt-2 text-xs leading-5 text-neutral-500">
+                  Older years stay out unless you ask for them.
+                </p>
               </form>
             </div>
           </div>
