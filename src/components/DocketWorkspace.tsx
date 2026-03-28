@@ -1,9 +1,11 @@
 import { format } from 'date-fns';
-import { AlertCircle, BellRing, ExternalLink, Loader2, RadioTower, RefreshCw, Send, X } from 'lucide-react';
+import { AlertCircle, BellRing, ExternalLink, GitBranch, Loader2, RadioTower, RefreshCw, Send, X } from 'lucide-react';
 import { useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { DocketWatchEvent, DocketWatchSubscription, DocketWatchTarget, UtilityFilter } from '../services/dockets';
+import type { DocketTimelineEvent, DocketWatchEvent, DocketWatchSubscription, DocketWatchTarget, UtilityFilter } from '../services/dockets';
+import { generateDocketTimeline } from '../services/dockets';
+import { DocketTimeline } from './DocketTimeline';
 
 type DocketChatMessage = {
   role: 'user' | 'assistant';
@@ -99,6 +101,23 @@ export function DocketWorkspace({
 }: DocketWorkspaceProps) {
   const [input, setInput] = useState('');
   const [isAgentOpen, setIsAgentOpen] = useState(false);
+  const [timelineEvents, setTimelineEvents] = useState<DocketTimelineEvent[] | null>(null);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelineError, setTimelineError] = useState<string | null>(null);
+
+  const handleGenerateTimeline = async () => {
+    setTimelineLoading(true);
+    setTimelineError(null);
+    setTimelineEvents(null);
+    try {
+      const result = await generateDocketTimeline(selectedState, selectedUtilityType);
+      setTimelineEvents(result.events);
+    } catch (err: any) {
+      setTimelineError(err.message || 'Failed to generate timeline.');
+    } finally {
+      setTimelineLoading(false);
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -329,6 +348,63 @@ export function DocketWorkspace({
                   </p>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* Regulatory Timeline */}
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-brand-magenta">
+                <GitBranch className="h-4 w-4" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Regulatory Activity Timeline</span>
+              </div>
+              <p className="mt-1.5 text-[13px] leading-5 text-neutral-500 max-w-lg">
+                Generate a chronological view of all key regulatory activities, sorted by significance and date. Click any event to see the account planning angle.
+              </p>
+            </div>
+
+            {!timelineLoading && !timelineEvents && (
+              <button
+                type="button"
+                onClick={() => void handleGenerateTimeline()}
+                className="inline-flex flex-shrink-0 items-center gap-2.5 rounded-xl bg-gradient-to-r from-brand-magenta to-brand-magenta-dark px-5 py-3 text-[13px] font-bold text-white shadow-lg shadow-brand-magenta/20 transition-all hover:shadow-xl hover:shadow-brand-magenta/30 hover:-translate-y-0.5 active:translate-y-0"
+              >
+                <GitBranch className="h-4 w-4" />
+                Generate Regulatory Timeline
+              </button>
+            )}
+
+            {timelineEvents && !timelineLoading && (
+              <button
+                type="button"
+                onClick={() => void handleGenerateTimeline()}
+                className="inline-flex flex-shrink-0 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-2 text-[12px] font-semibold text-neutral-500 transition-all hover:border-brand-magenta/30 hover:text-brand-magenta hover:bg-brand-magenta/5"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Regenerate
+              </button>
+            )}
+          </div>
+
+          {timelineLoading && (
+            <div className="mt-4 flex items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
+              <Loader2 className="h-4 w-4 animate-spin text-brand-magenta flex-shrink-0" />
+              <span className="text-[13px] text-neutral-500 italic">Analyzing docket filings and generating timeline…</span>
+            </div>
+          )}
+
+          {timelineError && (
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
+              <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              {timelineError}
+            </div>
+          )}
+
+          {timelineEvents && (
+            <div className="mt-5">
+              <DocketTimeline events={timelineEvents} state={selectedState} />
             </div>
           )}
         </div>

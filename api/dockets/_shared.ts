@@ -1522,3 +1522,89 @@ const massachusettsDocketSchema = {
   },
   required: ['pageTitle', 'summaryText', 'docketNumbers', 'snippet', 'officialUrl', 'documents']
 } as const;
+
+export type DocketTimelineEvent = {
+  date: string;
+  title: string;
+  description: string;
+  utility: string;
+  documentType: string;
+  significance: 'high' | 'medium' | 'low';
+  stakeholders: string[];
+  accountAngle: string;
+};
+
+const docketTimelineSchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    events: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          date: { type: 'string' },
+          title: { type: 'string' },
+          description: { type: 'string' },
+          utility: { type: 'string' },
+          documentType: { type: 'string' },
+          significance: { type: 'string', enum: ['high', 'medium', 'low'] },
+          stakeholders: { type: 'array', items: { type: 'string' } },
+          accountAngle: { type: 'string' }
+        },
+        required: ['date', 'title', 'description', 'utility', 'documentType', 'significance', 'stakeholders', 'accountAngle']
+      }
+    }
+  },
+  required: ['events']
+} as const;
+
+export async function generateDocketTimeline(userId: string, state: 'NY' | 'MA' = 'NY', utilityType: 'all' | 'electric' | 'gas' = 'all') {
+  const context = await listRecentEventsForUser(userId, state, utilityType);
+
+  const documentsContext = context.targets.flatMap((target) => {
+    const docs = (target.latest_payload?.documents as Array<Record<string, unknown>>) || [];
+    return docs.map((doc) => ({ ...doc, _utility: target.display_name }));
+  });
+
+  const eventsContext = context.events.slice(0, 20);
+
+  const prompt = `
+You are Wintel's regulatory docket analyst for account planning and business development.
+
+Generate a chronological timeline of the most significant regulatory activities from the provided docket data. Focus exclusively on 2026 filings unless there are no 2026 items.
+
+For each event:
+- Extract or derive the most specific date possible from the data (e.g. "Jan 15, 2026" — if only month is available use "Jan 2026", if unknown use "2026")
+- Write a concise, action-oriented title (max 12 words)
+- Write a 1-2 sentence description from an account-planning perspective
+- Set significance based on rate case impact: "high" = rate filings, revenue requirement changes, major testimony; "medium" = procedural filings, intervenor responses; "low" = administrative, routine filings
+- List up to 3 key stakeholders
+- Write one sentence for accountAngle: what the account manager should do or watch for
+
+Return 8-15 events sorted by date ascending (oldest first). If fewer are available, return all of them.
+
+STATE: ${state}
+UTILITY FILTER: ${utilityType}
+
+DOCKET SNAPSHOTS & DOCUMENTS:
+${JSON.stringify(documentsContext.slice(0, 40), null, 2)}
+
+RECENT CHANGE EVENTS:
+${JSON.stringify(eventsContext, null, 2)}
+  `.trim();
+
+  const result = await requestStructured<{ events: DocketTimelineEvent[] }>({
+    input: prompt,
+    schemaName: 'docket_timeline',
+    schema: docketTimelineSchema,
+    useWebSearch: true
+  });
+
+  if (!result.events || result.events.length === 0) {
+    throw new Error('No timeline events could be generated from the available docket data.');
+  }
+
+  return result;
+}

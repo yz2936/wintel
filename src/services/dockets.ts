@@ -52,6 +52,21 @@ export type DocketAskResponse = {
   scope: string;
 };
 
+export type DocketTimelineEvent = {
+  date: string;
+  title: string;
+  description: string;
+  utility: string;
+  documentType: string;
+  significance: 'high' | 'medium' | 'low';
+  stakeholders: string[];
+  accountAngle: string;
+};
+
+export type DocketTimelineResponse = {
+  events: DocketTimelineEvent[];
+};
+
 export type UtilityFilter = 'all' | 'electric' | 'gas';
 
 export async function fetchDocketWatchEvents(state: 'NY' | 'MA', utilityType: UtilityFilter): Promise<DocketWatchEventsResponse> {
@@ -70,6 +85,13 @@ export async function askDocketQuestion(question: string, state: 'NY' | 'MA', ut
   return requestWithSession('/api/dockets/ask', {
     method: 'POST',
     body: JSON.stringify({ question, state, utilityType })
+  });
+}
+
+export async function generateDocketTimeline(state: 'NY' | 'MA', utilityType: UtilityFilter): Promise<DocketTimelineResponse> {
+  return requestWithSession('/api/dockets/timeline', {
+    method: 'POST',
+    body: JSON.stringify({ state, utilityType })
   });
 }
 
