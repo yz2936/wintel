@@ -1,6 +1,7 @@
-import { Zap, Building2, Loader2, CheckSquare, Square, LogOut, User, BellRing, MessageSquareText, ChevronRight, Search } from 'lucide-react';
+import { Building2, Loader2, CheckSquare, Square, LogOut, User, BellRing, MessageSquareText, ChevronRight, Search, Sparkles } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { CompanyGroup } from '../data/companies';
+import wintelLogo from '../assets/wintel-logo-mark.svg';
 
 interface FunctionArea {
   id: string;
@@ -77,12 +78,12 @@ export function Sidebar({
       {/* Brand header */}
       <div className="px-4 py-4 border-b border-white/8">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-brand-magenta to-brand-magenta-dark rounded-lg flex items-center justify-center text-white shadow-lg shadow-brand-magenta/25">
-            <Zap className="w-4 h-4" />
+          <div className="w-9 h-9 flex-shrink-0 rounded-xl overflow-hidden bg-white/8 flex items-center justify-center shadow-lg shadow-black/20">
+            <img src={wintelLogo} alt="Wintel" className="w-7 h-7 object-contain" />
           </div>
           <div>
-            <span className="text-sm font-semibold tracking-tight text-white block leading-tight">Wintel</span>
-            <span className="text-[10px] text-white/40 leading-tight">Strategic Intelligence</span>
+            <span className="text-sm font-bold tracking-tight text-white block leading-tight">WINTEL</span>
+            <span className="text-[10px] text-white/40 leading-tight">Market Insights for Account Teams</span>
           </div>
         </div>
       </div>
@@ -301,7 +302,7 @@ export function Sidebar({
           disabled={loading || !selectedCompanyId}
           className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-magenta to-brand-magenta-dark hover:from-brand-magenta-dark hover:to-brand-magenta text-white px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-brand-magenta/20 active:scale-[0.98]"
         >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
           Generate Intel Report
         </button>
 

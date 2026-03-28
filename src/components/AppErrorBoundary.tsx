@@ -27,7 +27,7 @@ export class AppErrorBoundary extends Component<Props, State> {
     }
 
     return (
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,0,204,0.18),_transparent_35%),linear-gradient(135deg,_#07011f_0%,_#0B004E_52%,_#1d0b59_100%)] px-6 py-10 text-white">
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,165,230,0.18),_transparent_35%),linear-gradient(135deg,_#07162f_0%,_#0f2d5c_52%,_#154a8e_100%)] px-6 py-10 text-white">
         <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-4xl items-center justify-center">
           <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-white/[0.08] p-8 shadow-2xl backdrop-blur-xl">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-magenta">Runtime Error</p>

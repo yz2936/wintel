@@ -2,10 +2,15 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --color-brand-navy: #0B004E;
-  --color-brand-magenta: #FF00CC;
-  --color-brand-magenta-dark: #CC00A3;
-  --color-brand-cream: #fff8ef;
+  /* === Wintel brand palette (matched to logo) === */
+  --color-brand-navy: #0F2D5C;
+  --color-brand-blue: #1D74D7;
+  --color-brand-blue-light: #EAF4FF;
+  --color-brand-magenta: #22A5E6;
+  --color-brand-magenta-dark: #117CC6;
+  --color-brand-cream: #F4F9FF;
+  --color-brand-gold: #F4A43A;
+  --color-brand-gold-dark: #D58422;
 
   /* Override Tailwind v4 default oklch colors with hex to fix html2canvas PDF export */
   --color-black: #000000;
@@ -205,16 +210,16 @@ select:focus-visible {
 
 .hero-grid {
   background:
-    radial-gradient(circle at 0% 0%, rgba(255, 0, 204, 0.1), transparent 30%),
-    radial-gradient(circle at 100% 0%, rgba(11, 0, 78, 0.06), transparent 30%),
-    linear-gradient(180deg, #fffefc 0%, #fff 62%, #fbfbff 100%);
+    radial-gradient(circle at 0% 0%, rgba(34, 165, 230, 0.12), transparent 32%),
+    radial-gradient(circle at 100% 0%, rgba(15, 45, 92, 0.08), transparent 34%),
+    linear-gradient(180deg, #f4f9ff 0%, #ffffff 62%, #f7fbff 100%);
 }
 
 @media (max-width: 768px) {
   .hero-grid {
     background:
-      radial-gradient(circle at 15% 0%, rgba(255, 0, 204, 0.1), transparent 36%),
-      linear-gradient(180deg, #fffefc 0%, #fff 62%, #fbfbff 100%);
+      radial-gradient(circle at 15% 0%, rgba(34, 165, 230, 0.12), transparent 36%),
+      linear-gradient(180deg, #f4f9ff 0%, #ffffff 62%, #f7fbff 100%);
   }
 }
 
@@ -282,14 +287,14 @@ textarea {
   }
 
   .prose h1 {
-    color: #0B004E !important;
+    color: #162B6E !important;
     font-size: 24pt !important;
     margin-top: 0 !important;
     margin-bottom: 20pt !important;
   }
 
   .prose h2 {
-    color: #0B004E !important;
+    color: #162B6E !important;
     font-size: 18pt !important;
     border-bottom: 1px solid #eee;
     padding-bottom: 4pt;

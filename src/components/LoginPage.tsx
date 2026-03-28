@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Loader2, LockKeyhole, Shield, Database, Server } from 'lucide-react';
+import { Loader2, LockKeyhole, Database, Server, Shield } from 'lucide-react';
+import wintelLogo from '../assets/wintel-logo-mark.svg';
 
 interface LoginPageProps {
   loading: boolean;
@@ -32,10 +33,21 @@ export function LoginPage({ loading, onLogin, onRegister }: LoginPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_rgba(255,0,204,0.14),_transparent_40%),radial-gradient(ellipse_at_bottom_right,_rgba(11,0,78,0.3),_transparent_50%),linear-gradient(160deg,_#07011f_0%,_#0B004E_50%,_#150856_100%)] text-white px-6 py-10">
+    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_left,_rgba(34,165,230,0.22),_transparent_40%),radial-gradient(ellipse_at_bottom_right,_rgba(15,45,92,0.42),_transparent_50%),linear-gradient(160deg,_#081B3B_0%,_#0F2D5C_48%,_#154A8E_100%)] text-white px-6 py-10">
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-12 lg:flex-row flex-col">
         {/* Left — hero */}
         <div className="flex-1 space-y-8">
+          {/* Logo mark + wordmark */}
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 shadow-lg shadow-black/20 backdrop-blur-sm border border-white/12">
+              <img src={wintelLogo} alt="Wintel" className="h-9 w-9 object-contain" />
+            </div>
+            <div>
+              <p className="text-xl font-bold tracking-widest text-white">WINTEL</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">Market Insights for Account Teams</p>
+            </div>
+          </div>
+
           <div className="inline-flex items-center gap-2.5 rounded-full border border-white/8 bg-white/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-white/60">
             <Shield className="h-3.5 w-3.5 text-brand-magenta" />
             Secure Workspace

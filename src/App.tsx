@@ -281,7 +281,7 @@ function WorkspaceHero({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-neutral-200 bg-gradient-to-br from-brand-navy to-[#1a0b63] p-5 text-white shadow-sm">
+        <div className="rounded-2xl border border-neutral-200 bg-gradient-to-br from-brand-navy to-[#154a8e] p-5 text-white shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-brand-magenta/70">Custom Motion</p>
           <h3 className="mt-1.5 text-base font-semibold">Build your own reusable prompts</h3>
           <p className="mt-2 text-[13px] leading-6 text-white/50">
@@ -841,7 +841,7 @@ export default function App() {
 
   if (authInitError) {
     return (
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,0,204,0.18),_transparent_35%),linear-gradient(135deg,_#07011f_0%,_#0B004E_52%,_#1d0b59_100%)] px-6 py-10 text-white">
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,165,230,0.18),_transparent_35%),linear-gradient(135deg,_#07162f_0%,_#0f2d5c_52%,_#154a8e_100%)] px-6 py-10 text-white">
         <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-4xl items-center justify-center">
           <div className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-white/[0.08] p-8 shadow-2xl backdrop-blur-xl">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-magenta">Configuration Required</p>
@@ -1031,7 +1031,7 @@ export default function App() {
                         className={message.role === 'user' ? 'flex justify-end' : 'flex justify-start'}
                       >
                         {message.role === 'user' ? (
-                          <div className="max-w-2xl rounded-2xl rounded-tr-sm bg-gradient-to-br from-brand-navy to-[#1d0d65] px-4 py-3.5 text-white shadow-lg shadow-brand-navy/12">
+                          <div className="max-w-2xl rounded-2xl rounded-tr-sm bg-gradient-to-br from-brand-navy to-[#174d96] px-4 py-3.5 text-white shadow-lg shadow-brand-navy/12">
                             <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
                               <MessageSquare className="h-3 w-3" />
                               Your Prompt
