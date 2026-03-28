@@ -132,25 +132,25 @@ function KeywordTooltip({ term, keywords, children, groundingChunks }: { term: s
         {children}
       </button>
       {isExpanded && (
-        <span className="absolute bottom-full left-1/2 z-50 mb-3 block w-72 -translate-x-1/2 rounded-lg border border-neutral-200 bg-white p-4 text-left shadow-2xl">
+        <span className="absolute bottom-full left-1/2 z-50 mb-3 block w-72 -translate-x-1/2 rounded-xl border border-neutral-200 bg-white p-4 text-left shadow-xl ring-1 ring-black/5">
           <span className="mb-2 flex items-center gap-2 text-brand-magenta">
             <Sparkles className="h-3.5 w-3.5" />
             <span className="text-[10px] font-bold uppercase tracking-[0.24em]">Strategic Insight</span>
           </span>
-          <span className="block text-xs leading-relaxed text-neutral-600">{insight.summary}</span>
+          <span className="block text-[12px] leading-relaxed text-neutral-600">{insight.summary}</span>
           <span className="mt-4 flex items-center gap-2">
             <a
               href={finalUrl && finalUrl.startsWith('http') ? finalUrl : `https://www.google.com/search?q=${encodeURIComponent(insight.term)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-1 items-center justify-center gap-2 rounded-md bg-brand-navy px-3 py-2 text-[10px] font-bold text-white transition-colors hover:bg-brand-navy/90"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-brand-navy px-3 py-2 text-[10px] font-bold text-white transition-colors hover:bg-brand-navy/90"
             >
               <ExternalLink className="h-3 w-3" />
               {finalUrl && finalUrl.startsWith('http') ? 'View Source' : 'Search Info'}
             </a>
             <button
               onClick={() => setIsExpanded(false)}
-              className="rounded-md px-3 py-2 text-[10px] font-bold text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+              className="rounded-lg px-3 py-2 text-[10px] font-bold text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
             >
               Close
             </button>
@@ -196,32 +196,32 @@ function WorkspaceHero({
     : [];
 
   return (
-    <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="mx-auto mt-2 max-w-6xl space-y-4">
-      <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(11,0,78,0.05)]">
-        <div className="hero-grid relative px-5 py-4 md:px-6">
-          <div className="pointer-events-none absolute -right-12 top-0 h-52 w-52 rounded-full bg-brand-magenta/10 blur-3xl" />
-          <div className="pointer-events-none absolute bottom-0 left-0 h-32 w-48 rounded-full bg-brand-navy/7 blur-3xl" />
+    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 120, damping: 20 }} className="mx-auto mt-2 max-w-6xl space-y-4">
+      <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+        <div className="hero-grid relative px-5 py-5 md:px-6">
+          <div className="pointer-events-none absolute -right-16 top-0 h-56 w-56 rounded-full bg-brand-magenta/8 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 left-0 h-32 w-48 rounded-full bg-brand-navy/5 blur-3xl" />
           <div className="relative z-10 space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-brand-magenta/15 bg-brand-magenta/6 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-brand-magenta">
+            <div className="inline-flex items-center gap-2 rounded-full border border-brand-magenta/12 bg-brand-magenta/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-magenta">
               <WandSparkles className="h-3.5 w-3.5" />
               Account Development Copilot
             </div>
-            <h2 className="max-w-4xl text-[1.85rem] font-semibold leading-[1.08] tracking-tight text-brand-navy md:text-[2.2rem]">
+            <h2 className="max-w-4xl text-[1.75rem] font-semibold leading-[1.12] tracking-tight text-brand-navy md:text-[2.1rem]">
               Turn raw market intel into a sharper pursuit strategy.
             </h2>
-            <p className="max-w-5xl text-sm leading-6 text-neutral-600">
-              Use the chat like a deal room: ask for buying signals, stakeholder angles, timing windows, pitch refinement, and next-best actions. The workspace is tuned for account development rather than generic research.
+            <p className="max-w-5xl text-[13px] leading-6 text-neutral-500">
+              Use the chat like a deal room: ask for buying signals, stakeholder angles, timing windows, pitch refinement, and next-best actions.
               {selectedCompanyId
-                ? ` Start with ${activeCompanyName} by asking for top news tied to buying intent, pain points, likely champions, budget signals, or the best pitch angle.`
+                ? ` Start with ${activeCompanyName} by asking for top news tied to buying intent, pain points, likely champions, or the best pitch angle.`
                 : ' Select a target company to unlock account-specific prompts and a tighter commercial view.'}
             </p>
             {selectedCompanyId && (
-              <div className="flex flex-wrap gap-2 pt-1">
+              <div className="flex flex-wrap gap-1.5 pt-1">
                 {compactPrompts.map((prompt, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentInput(prompt)}
-                    className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-[11px] font-medium text-neutral-700 transition-all hover:border-brand-magenta/35 hover:text-brand-navy"
+                    className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-[11px] font-medium text-neutral-600 transition-all hover:border-brand-magenta/30 hover:text-brand-magenta hover:bg-brand-magenta/5"
                   >
                     {prompt}
                   </button>
@@ -233,14 +233,12 @@ function WorkspaceHero({
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-        <div className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400">Suggested Plays</p>
-              <h3 className="mt-1 text-lg font-semibold text-brand-navy">Start from intent, not from a blank box</h3>
-            </div>
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <div className="mb-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400">Suggested Plays</p>
+            <h3 className="mt-1 text-base font-semibold text-brand-navy">Start from intent, not from a blank box</h3>
           </div>
-          <div className="grid gap-2.5 md:grid-cols-2">
+          <div className="grid gap-2 md:grid-cols-2">
             {(selectedCompanyId
               ? [
                   `What are the top pain points for ${activeCompanyName} right now?`,
@@ -263,9 +261,9 @@ function WorkspaceHero({
                   <button
                     onClick={() => selectedCompanyId && setCurrentInput(suggestion)}
                     disabled={!selectedCompanyId}
-                    className={`w-full rounded-lg border p-3.5 text-left transition-all ${selectedCompanyId ? 'border-neutral-200 bg-neutral-50/70 hover:border-brand-magenta/40 hover:bg-white hover:shadow-sm' : 'cursor-not-allowed border-neutral-200 bg-neutral-50 opacity-50'}`}
+                    className={`w-full rounded-xl border p-3 text-left transition-all ${selectedCompanyId ? 'border-neutral-150 bg-neutral-50/60 hover:border-brand-magenta/30 hover:bg-white hover:shadow-sm' : 'cursor-not-allowed border-neutral-200 bg-neutral-50 opacity-40'}`}
                   >
-                    <p className="text-sm font-medium leading-5.5 text-neutral-700">{suggestion}</p>
+                    <p className="text-[13px] font-medium leading-[1.5] text-neutral-600">{suggestion}</p>
                   </button>
                   {isCustom && (
                     <button
@@ -273,7 +271,7 @@ function WorkspaceHero({
                         event.stopPropagation();
                         handleRemoveQuestion(index - 4);
                       }}
-                      className="absolute right-3 top-3 rounded-full p-1 text-neutral-300 opacity-0 transition-opacity hover:bg-white hover:text-red-500 group-hover:opacity-100"
+                      className="absolute right-2.5 top-2.5 rounded-lg p-1 text-neutral-300 opacity-0 transition-all hover:bg-white hover:text-red-500 group-hover:opacity-100"
                       title="Remove custom question"
                     >
                       <X className="h-3 w-3" />
@@ -285,13 +283,13 @@ function WorkspaceHero({
           </div>
         </div>
 
-        <div className="rounded-lg border border-neutral-200 bg-[linear-gradient(180deg,#0B004E_0%,#1a0b63_100%)] p-4.5 text-white shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-brand-magenta/80">Custom Motion</p>
-          <h3 className="mt-1 text-lg font-semibold">Build your own reusable prompts</h3>
-          <p className="mt-2 text-sm leading-5.5 text-white/70">
+        <div className="rounded-2xl border border-neutral-200 bg-gradient-to-br from-brand-navy to-[#1a0b63] p-5 text-white shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-brand-magenta/70">Custom Motion</p>
+          <h3 className="mt-1.5 text-base font-semibold">Build your own reusable prompts</h3>
+          <p className="mt-2 text-[13px] leading-6 text-white/50">
             Save your best pursuit questions here so they stay available every time you log in.
           </p>
-          <div className="mt-5">
+          <div className="mt-4">
             {isAddingQuestion ? (
               <form onSubmit={handleAddQuestion} className="space-y-3">
                 <textarea
@@ -299,13 +297,13 @@ function WorkspaceHero({
                   value={newQuestion}
                   onChange={(event) => setNewQuestion(event.target.value)}
                   placeholder="Example: Which active capital programs make this the right time to push grid modernization services?"
-                  className="h-28 w-full resize-none rounded-lg border border-white/10 bg-white/8 px-4 py-3 text-sm text-white placeholder:text-white/35 focus:border-brand-magenta focus:outline-none"
+                  className="h-24 w-full resize-none rounded-xl border border-white/10 bg-white/8 px-4 py-3 text-[13px] text-white placeholder:text-white/30 focus:border-brand-magenta/50 focus:outline-none"
                 />
                 <div className="flex gap-2">
-                  <button type="submit" className="rounded-md bg-brand-magenta px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-brand-magenta-dark">
+                  <button type="submit" className="rounded-lg bg-brand-magenta px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-brand-magenta-dark">
                     Save Prompt
                   </button>
-                  <button type="button" onClick={() => setIsAddingQuestion(false)} className="rounded-md border border-white/10 px-4 py-2 text-sm font-bold text-white/75 transition-colors hover:bg-white/8">
+                  <button type="button" onClick={() => setIsAddingQuestion(false)} className="rounded-lg border border-white/10 px-4 py-2 text-[13px] font-semibold text-white/60 transition-colors hover:bg-white/8 hover:text-white/80">
                     Cancel
                   </button>
                 </div>
@@ -313,7 +311,7 @@ function WorkspaceHero({
             ) : (
               <button
                 onClick={() => setIsAddingQuestion(true)}
-                className="inline-flex items-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-bold text-brand-navy transition-transform hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-[13px] font-semibold text-brand-navy transition-all hover:shadow-md hover:-translate-y-0.5"
               >
                 <Sparkles className="h-4 w-4 text-brand-magenta" />
                 Add Custom Prompt
@@ -934,41 +932,54 @@ export default function App() {
             ) : (
               <>
                 <div className="sticky top-0 z-20 pt-1">
-                  <div className="rounded-xl border border-neutral-200 bg-white/92 shadow-sm backdrop-blur">
+                  <div className="rounded-xl border border-neutral-200 bg-white/95 shadow-sm backdrop-blur-md">
                     <button
                       onClick={() => setIsFocusCollapsed((current) => !current)}
-                      className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left"
+                      className="flex w-full items-center justify-between gap-4 px-4 py-2.5 text-left"
                     >
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400">Focus Summary</p>
-                        <h3 className="mt-1 text-base font-semibold text-brand-navy">
-                          {activeCompanyName ? `${activeCompanyName} account angle` : 'Workspace focus'}
-                        </h3>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-magenta/8 flex-shrink-0">
+                          <Sparkles className="h-4 w-4 text-brand-magenta" />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="text-[13px] font-semibold text-brand-navy truncate">
+                            {activeCompanyName ? `${activeCompanyName} account angle` : 'Workspace focus'}
+                          </h3>
+                          <p className="text-[10px] text-neutral-400 mt-0.5">
+                            {focusLoading ? 'Refreshing...' : (isFocusCollapsed ? 'Click to expand' : 'Focus Summary')}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={(event) => {
                             event.stopPropagation();
                             setIsSidebarOpen((current) => !current);
                           }}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-500 transition-colors hover:bg-neutral-100"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
                           title={isSidebarOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
                         >
-                          {isSidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+                          {isSidebarOpen ? <ChevronLeft className="h-3.5 w-3.5" /> : <Menu className="h-3.5 w-3.5" />}
                         </button>
-                        {isFocusCollapsed ? <ChevronDown className="h-4 w-4 text-neutral-500" /> : <ChevronUp className="h-4 w-4 text-neutral-500" />}
+                        {isFocusCollapsed ? <ChevronDown className="h-3.5 w-3.5 text-neutral-400" /> : <ChevronUp className="h-3.5 w-3.5 text-neutral-400" />}
                       </div>
                     </button>
 
                     {!isFocusCollapsed && (
-                      <div className="border-t border-neutral-200 px-4 py-3">
-                        <p className="text-sm leading-6 text-neutral-700">
+                      <div className="border-t border-neutral-100 px-4 py-3">
+                        <p className="text-[13px] leading-6 text-neutral-600">
                           {focusLoading ? 'Refreshing AI summary...' : focusSummary}
                         </p>
-                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-neutral-500">
-                          <span><strong className="font-semibold text-brand-navy">OpCos:</strong> {activeOpCos.length > 0 ? activeOpCos.join(', ') : 'All relevant entities'}</span>
-                          <span><strong className="font-semibold text-brand-navy">Functions:</strong> {currentFunctionNames.length > 0 ? currentFunctionNames.join(', ') : 'General lens'}</span>
-                          <span><strong className="font-semibold text-brand-navy">Timeline:</strong> {selectedYear || 'Next 5 years'}</span>
+                        <div className="mt-2.5 flex flex-wrap gap-2">
+                          <span className="inline-flex items-center rounded-md bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-500">
+                            <strong className="font-semibold text-brand-navy mr-1">OpCos:</strong> {activeOpCos.length > 0 ? activeOpCos.join(', ') : 'All'}
+                          </span>
+                          <span className="inline-flex items-center rounded-md bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-500">
+                            <strong className="font-semibold text-brand-navy mr-1">Focus:</strong> {currentFunctionNames.length > 0 ? currentFunctionNames.join(', ') : 'General'}
+                          </span>
+                          <span className="inline-flex items-center rounded-md bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-500">
+                            <strong className="font-semibold text-brand-navy mr-1">Timeline:</strong> {selectedYear || 'Next 5y'}
+                          </span>
                         </div>
                       </div>
                     )}
@@ -1022,51 +1033,51 @@ export default function App() {
                         className={message.role === 'user' ? 'flex justify-end' : 'flex justify-start'}
                       >
                         {message.role === 'user' ? (
-                          <div className="max-w-2xl rounded-lg rounded-tr-sm bg-gradient-to-br from-brand-navy to-[#24106F] px-4 py-3.5 text-white shadow-xl shadow-brand-navy/15">
-                            <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/55">
-                              <MessageSquare className="h-3.5 w-3.5" />
+                          <div className="max-w-2xl rounded-2xl rounded-tr-sm bg-gradient-to-br from-brand-navy to-[#1d0d65] px-4 py-3.5 text-white shadow-lg shadow-brand-navy/12">
+                            <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">
+                              <MessageSquare className="h-3 w-3" />
                               Your Prompt
                             </div>
-                            <p className="text-sm leading-6 text-white/95">{message.content}</p>
-                            <p className="mt-2 text-right text-[10px] text-white/50">{format(message.timestamp, 'h:mm a')}</p>
+                            <p className="text-[13px] leading-6 text-white/92">{message.content}</p>
+                            <p className="mt-2 text-right text-[10px] text-white/35">{format(message.timestamp, 'h:mm a')}</p>
                           </div>
                         ) : (
-                          <div className="w-full overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_28px_90px_rgba(11,0,78,0.08)]">
-                            <div className="border-b border-neutral-200 px-5 py-4 md:px-6">
-                              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="w-full overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+                            <div className="border-b border-neutral-100 bg-gradient-to-r from-white to-neutral-50/80 px-5 py-4 md:px-6">
+                              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                 <div>
-                                  <div className="mb-2 flex items-center gap-2 text-brand-magenta">
+                                  <div className="mb-1.5 flex items-center gap-2 text-brand-magenta">
                                     <RadioTower className="h-3.5 w-3.5" />
                                     <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Account Planning Brief</span>
                                   </div>
-                                  <h3 className="text-lg font-semibold text-brand-navy">
+                                  <h3 className="text-base font-semibold text-brand-navy">
                                     {message.type === 'report' ? 'Recency, opportunity, stakeholder, and attack view' : 'Plan of Attack'}
                                   </h3>
-                                  <p className="mt-1 text-xs leading-5 text-neutral-500">
-                                    Organized around the four account-planning lenses that matter most in live pursuit work.
+                                  <p className="mt-1 text-[11px] leading-5 text-neutral-400">
+                                    Organized around the four account-planning lenses that matter most.
                                   </p>
                                 </div>
-                                <div className="flex flex-wrap gap-2 print:hidden">
-                                  <button onClick={() => handleExportTxt(message.data)} className="inline-flex items-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs font-bold text-neutral-600 transition-colors hover:bg-neutral-100">
-                                    <Download className="h-3.5 w-3.5" />
+                                <div className="flex flex-wrap gap-1.5 print:hidden">
+                                  <button onClick={() => handleExportTxt(message.data)} className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-neutral-500 transition-all hover:bg-neutral-50 hover:text-neutral-700">
+                                    <Download className="h-3 w-3" />
                                     TXT
                                   </button>
-                                  <button onClick={() => void handleExportPdf(message.data)} className="inline-flex items-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs font-bold text-neutral-600 transition-colors hover:bg-neutral-100">
-                                    <FileDown className="h-3.5 w-3.5" />
+                                  <button onClick={() => void handleExportPdf(message.data)} className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-neutral-500 transition-all hover:bg-neutral-50 hover:text-neutral-700">
+                                    <FileDown className="h-3 w-3" />
                                     PDF
                                   </button>
-                                  <button onClick={() => handleExportWord(index.toString())} className="inline-flex items-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs font-bold text-neutral-600 transition-colors hover:bg-neutral-100">
-                                    <FileDown className="h-3.5 w-3.5" />
+                                  <button onClick={() => handleExportWord(index.toString())} className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-neutral-500 transition-all hover:bg-neutral-50 hover:text-neutral-700">
+                                    <FileDown className="h-3 w-3" />
                                     Word
                                   </button>
                                   {message.type === 'report' && (
                                     <button
                                       onClick={() => void handleGeneratePlanOfAttack(message.data.text)}
                                       disabled={loading}
-                                      className="inline-flex items-center gap-2 rounded-md bg-brand-magenta px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-brand-magenta-dark disabled:opacity-50"
+                                      className="inline-flex items-center gap-1.5 rounded-lg bg-brand-magenta px-3.5 py-1.5 text-[11px] font-semibold text-white transition-all hover:bg-brand-magenta-dark disabled:opacity-40"
                                     >
-                                      <WandSparkles className="h-3.5 w-3.5" />
-                                      Generate Plan of Attack
+                                      <WandSparkles className="h-3 w-3" />
+                                      Plan of Attack
                                     </button>
                                   )}
                                 </div>
@@ -1094,37 +1105,38 @@ export default function App() {
                               )}
 
                               {message.contacts && message.contacts.length > 0 && (
-                                <div className="rounded-lg border border-neutral-200 bg-neutral-50/80 p-4">
-                                  <div className="mb-4 flex items-center gap-2">
+                                <div className="rounded-xl border border-neutral-150 bg-neutral-50/50 p-4">
+                                  <div className="mb-3 flex items-center gap-2">
                                     <Linkedin className="h-4 w-4 text-[#0A66C2]" />
-                                    <h3 className="text-base font-bold text-brand-navy">Key Strategic Contacts</h3>
+                                    <h3 className="text-[13px] font-semibold text-brand-navy">Key Strategic Contacts</h3>
+                                    <span className="text-[11px] text-neutral-400">{message.contacts.length} identified</span>
                                   </div>
-                                  <div className="grid gap-4 md:grid-cols-2">
+                                  <div className="grid gap-3 md:grid-cols-2">
                                     {message.contacts.map((contact, contactIndex) => (
-                                      <div key={contactIndex} className="flex h-full flex-col rounded-lg border border-neutral-200 bg-white p-3.5 shadow-sm">
-                                        <div className="mb-3 flex items-start gap-3">
-                                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-brand-navy/8">
-                                            <UserPlus className="h-5 w-5 text-brand-navy" />
+                                      <div key={contactIndex} className="flex h-full flex-col rounded-xl border border-neutral-150 bg-white p-3.5 transition-all hover:shadow-sm">
+                                        <div className="mb-2.5 flex items-start gap-3">
+                                          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-brand-navy/6">
+                                            <UserPlus className="h-4 w-4 text-brand-navy/70" />
                                           </div>
-                                          <div>
-                                            <h4 className="text-sm font-bold leading-tight text-brand-navy">{contact.name}</h4>
-                                            <p className="text-xs font-medium text-neutral-500">{contact.title}</p>
+                                          <div className="min-w-0">
+                                            <h4 className="text-[13px] font-semibold leading-tight text-brand-navy truncate">{contact.name}</h4>
+                                            <p className="text-[11px] font-medium text-neutral-400 mt-0.5">{contact.title}</p>
                                           </div>
                                         </div>
-                                        <p className="mb-4 flex-grow text-xs italic leading-5 text-neutral-600">"{contact.relevance}"</p>
-                                        <div className="flex gap-2">
+                                        <p className="mb-3 flex-grow text-[12px] italic leading-5 text-neutral-500">"{contact.relevance}"</p>
+                                        <div className="flex gap-1.5">
                                           <a
                                             href={contact.linkedinUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex flex-1 items-center justify-center gap-2 rounded-md bg-[#0A66C2] py-2 text-xs font-bold text-white transition-colors hover:bg-[#004182]"
+                                            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#0A66C2] py-2 text-[11px] font-semibold text-white transition-colors hover:bg-[#004182]"
                                           >
                                             <Linkedin className="h-3 w-3" />
                                             Profile
                                           </a>
                                           <button
                                             onClick={() => handleAskAboutContact(contact)}
-                                            className="flex flex-1 items-center justify-center gap-2 rounded-md border border-neutral-300 bg-white py-2 text-xs font-bold text-neutral-700 transition-colors hover:bg-neutral-50"
+                                            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-neutral-200 bg-white py-2 text-[11px] font-semibold text-neutral-600 transition-all hover:bg-neutral-50 hover:text-brand-navy"
                                           >
                                             <MessageSquare className="h-3 w-3" />
                                             Ask AI
@@ -1181,29 +1193,29 @@ export default function App() {
         {selectedView === 'account' && (
           <div className="pointer-events-none fixed bottom-4 right-4 z-40 print:hidden sm:bottom-5 sm:right-5">
             {isAccountAgentOpen ? (
-              <div className="pointer-events-auto max-h-[calc(100vh-2rem)] w-[min(460px,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-[0_28px_90px_rgba(11,0,78,0.18)] sm:max-h-[calc(100vh-2.5rem)]">
-                <div className="flex items-start justify-between gap-3 border-b border-neutral-200 bg-[linear-gradient(135deg,#ffffff_0%,#fbf8ff_100%)] px-4 py-4 sm:px-5">
+              <div className="pointer-events-auto max-h-[calc(100vh-2rem)] w-[min(440px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-2xl sm:max-h-[calc(100vh-2.5rem)]">
+                <div className="flex items-start justify-between gap-3 border-b border-neutral-100 bg-gradient-to-br from-white to-neutral-50/80 px-4 py-4 sm:px-5">
                   <div className="min-w-0 pr-2">
                     <div className="flex items-center gap-2 text-brand-magenta">
                       <MessageSquare className="h-4 w-4" />
                       <span className="text-[10px] font-bold uppercase tracking-[0.22em]">Ask Wintel</span>
                     </div>
-                    <h2 className="mt-2 break-words text-base font-semibold text-brand-navy sm:text-lg">Shape the next account planning brief</h2>
-                    <p className="mt-1 break-words text-sm leading-6 text-neutral-600">
-                      Focus on recency, opportunities, stakeholders, and attack strategy without taking over the workspace.
+                    <h2 className="mt-2 break-words text-base font-semibold text-brand-navy">Shape the next account planning brief</h2>
+                    <p className="mt-1 break-words text-[12px] leading-5 text-neutral-500">
+                      Focus on recency, opportunities, stakeholders, and attack strategy.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsAccountAgentOpen(false)}
-                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500 transition-colors hover:bg-neutral-100"
+                    className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-white text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
                     title="Close account agent"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
 
-                <div className="max-h-[calc(100vh-8.5rem)] space-y-4 overflow-y-auto p-4 sm:max-h-[calc(100vh-9rem)] sm:p-5">
+                <div className="max-h-[calc(100vh-8.5rem)] space-y-4 overflow-y-auto p-4 custom-scrollbar sm:max-h-[calc(100vh-9rem)] sm:p-5">
                   {uploadedFile && (
                     <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 shadow-sm">
                       <FileText className="h-4 w-4 shrink-0 text-brand-magenta" />
@@ -1223,13 +1235,13 @@ export default function App() {
                           type="button"
                           onClick={() => activeCompanyName && setCurrentInput(template.build(activeCompanyName))}
                           disabled={!activeCompanyName}
-                          className="rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-left transition-all hover:border-brand-magenta/40 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-xl border border-neutral-150 bg-white px-3.5 py-2.5 text-left transition-all hover:border-brand-magenta/30 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           <div className="flex items-center gap-2 text-brand-magenta">
-                            <Icon className="h-4 w-4" />
-                            <span className="text-[11px] font-bold uppercase tracking-[0.18em]">{template.label}</span>
+                            <Icon className="h-3.5 w-3.5" />
+                            <span className="text-[10px] font-bold uppercase tracking-[0.16em]">{template.label}</span>
                           </div>
-                          <p className="mt-2 text-sm font-semibold text-brand-navy">{template.detail}</p>
+                          <p className="mt-1.5 text-[13px] font-semibold text-brand-navy">{template.detail}</p>
                         </button>
                       );
                     })}
@@ -1296,7 +1308,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsAccountAgentOpen(true)}
-                className="pointer-events-auto inline-flex h-14 items-center gap-3 rounded-full bg-brand-navy px-5 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(11,0,78,0.25)] transition-transform hover:-translate-y-0.5 hover:bg-brand-navy/92"
+                className="pointer-events-auto inline-flex h-12 items-center gap-2.5 rounded-full bg-brand-navy px-5 text-[13px] font-semibold text-white shadow-xl shadow-brand-navy/20 transition-all hover:-translate-y-0.5 hover:bg-brand-navy/92 hover:shadow-2xl"
               >
                 <MessageSquare className="h-4 w-4" />
                 Account Agent
