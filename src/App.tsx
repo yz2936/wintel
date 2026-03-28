@@ -19,7 +19,6 @@ import {
   ExternalLink,
   FileDown,
   FileText,
-  Linkedin,
   Loader2,
   Menu,
   MessageSquare,
@@ -28,7 +27,6 @@ import {
   Send,
   Sparkles,
   Target,
-  UserPlus,
   UsersRound,
   WandSparkles,
   X
@@ -1086,7 +1084,12 @@ export default function App() {
 
                             <div id={`report-${index}`} className="space-y-5 px-5 py-5 md:px-6">
                               {message.type === 'report' ? (
-                                <Dashboard data={{ ...message.data, keywords: message.keywords }} functionNames={currentFunctionNames} selectedYear={selectedYear} />
+                                <Dashboard
+                                  data={{ ...message.data, contacts: message.contacts, keywords: message.keywords }}
+                                  functionNames={currentFunctionNames}
+                                  selectedYear={selectedYear}
+                                  onAskAboutContact={handleAskAboutContact}
+                                />
                               ) : (
                                 <div className="prose prose-sm max-w-none prose-neutral prose-a:text-brand-magenta prose-a:no-underline prose-headings:font-semibold prose-headings:text-brand-navy hover:prose-a:underline">
                                   <Markdown
@@ -1101,50 +1104,6 @@ export default function App() {
                                   >
                                     {message.content}
                                   </Markdown>
-                                </div>
-                              )}
-
-                              {message.contacts && message.contacts.length > 0 && (
-                                <div className="rounded-xl border border-neutral-150 bg-neutral-50/50 p-4">
-                                  <div className="mb-3 flex items-center gap-2">
-                                    <Linkedin className="h-4 w-4 text-[#0A66C2]" />
-                                    <h3 className="text-[13px] font-semibold text-brand-navy">Key Strategic Contacts</h3>
-                                    <span className="text-[11px] text-neutral-400">{message.contacts.length} identified</span>
-                                  </div>
-                                  <div className="grid gap-3 md:grid-cols-2">
-                                    {message.contacts.map((contact, contactIndex) => (
-                                      <div key={contactIndex} className="flex h-full flex-col rounded-xl border border-neutral-150 bg-white p-3.5 transition-all hover:shadow-sm">
-                                        <div className="mb-2.5 flex items-start gap-3">
-                                          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-brand-navy/6">
-                                            <UserPlus className="h-4 w-4 text-brand-navy/70" />
-                                          </div>
-                                          <div className="min-w-0">
-                                            <h4 className="text-[13px] font-semibold leading-tight text-brand-navy truncate">{contact.name}</h4>
-                                            <p className="text-[11px] font-medium text-neutral-400 mt-0.5">{contact.title}</p>
-                                          </div>
-                                        </div>
-                                        <p className="mb-3 flex-grow text-[12px] italic leading-5 text-neutral-500">"{contact.relevance}"</p>
-                                        <div className="flex gap-1.5">
-                                          <a
-                                            href={contact.linkedinUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#0A66C2] py-2 text-[11px] font-semibold text-white transition-colors hover:bg-[#004182]"
-                                          >
-                                            <Linkedin className="h-3 w-3" />
-                                            Profile
-                                          </a>
-                                          <button
-                                            onClick={() => handleAskAboutContact(contact)}
-                                            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-neutral-200 bg-white py-2 text-[11px] font-semibold text-neutral-600 transition-all hover:bg-neutral-50 hover:text-brand-navy"
-                                          >
-                                            <MessageSquare className="h-3 w-3" />
-                                            Ask AI
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
                                 </div>
                               )}
                             </div>

@@ -150,22 +150,22 @@ export function DocketWorkspace({
           </div>
 
           {/* Controls */}
-          <div className="flex flex-col gap-2 flex-shrink-0">
+          <div className="flex flex-col gap-2 flex-shrink-0 w-full lg:w-auto">
             {/* State toggle */}
-            <div className="flex items-center gap-1 rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
+            <div className="flex rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
               {(['NY', 'MA'] as const).map((state) => (
                 <button
                   key={state}
                   type="button"
                   onClick={() => onSelectState(state)}
-                  className={`rounded-md px-3.5 py-2 text-[12px] font-semibold transition-all ${selectedState === state ? 'bg-brand-navy text-white shadow-sm' : 'text-neutral-500 hover:bg-white hover:text-brand-navy'}`}
+                  className={`flex-1 rounded-md py-2 text-center text-[12px] font-semibold transition-colors ${selectedState === state ? 'bg-brand-navy text-white' : 'text-neutral-500 hover:text-brand-navy'}`}
                 >
                   {state === 'NY' ? 'New York' : 'Massachusetts'}
                 </button>
               ))}
             </div>
             {/* Utility type toggle */}
-            <div className="flex items-center gap-1 rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
+            <div className="flex rounded-lg border border-neutral-200 bg-neutral-50 p-0.5">
               {([
                 { value: 'all', label: 'All' },
                 { value: 'electric', label: 'Electric' },
@@ -175,7 +175,7 @@ export function DocketWorkspace({
                   key={option.value}
                   type="button"
                   onClick={() => onSelectUtilityType(option.value)}
-                  className={`rounded-md px-3 py-2 text-[12px] font-semibold transition-all ${selectedUtilityType === option.value ? 'bg-brand-navy text-white shadow-sm' : 'text-neutral-500 hover:bg-white hover:text-brand-navy'}`}
+                  className={`flex-1 rounded-md py-2 text-center text-[12px] font-semibold transition-colors ${selectedUtilityType === option.value ? 'bg-brand-navy text-white' : 'text-neutral-500 hover:text-brand-navy'}`}
                 >
                   {option.label}
                 </button>
@@ -186,10 +186,10 @@ export function DocketWorkspace({
               type="button"
               onClick={() => void onSync()}
               disabled={loading || syncing}
-              className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-brand-navy px-4 text-[12px] font-semibold text-white shadow-md shadow-brand-navy/10 transition-all hover:bg-brand-navy/90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-brand-navy px-4 text-[12px] font-semibold text-white shadow-md shadow-brand-navy/10 transition-colors hover:bg-brand-navy/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              Check {selectedState} {selectedUtilityType === 'all' ? 'All Utilities' : selectedUtilityType === 'electric' ? 'Electric' : 'Gas'} 2026 Filings
+              <span>Check {selectedState} {selectedUtilityType === 'all' ? 'All Utilities' : selectedUtilityType === 'electric' ? 'Electric' : 'Gas'} Filings</span>
             </button>
             {subscription && (
               <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-[11px] text-neutral-500">

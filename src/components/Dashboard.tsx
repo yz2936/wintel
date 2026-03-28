@@ -1,8 +1,8 @@
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ExternalLink, Link2, Clock, Loader2, Sparkles, Radar } from 'lucide-react';
+import { ExternalLink, Link2, Clock, Loader2, MessageSquare, Sparkles, Radar, Users } from 'lucide-react';
 import React, { useState } from 'react';
-import { fetchTimeline, TimelineEvent, KeywordInsight } from '../services/gemini';
+import { fetchTimeline, TimelineEvent, KeywordInsight, Contact } from '../services/gemini';
 import { Timeline } from './Timeline';
 
 /* Clickable bold terms that show a source popover */
@@ -72,11 +72,12 @@ interface DashboardProps {
   data: {
     text: string;
     groundingChunks?: any[];
-    contacts?: any[];
+    contacts?: Contact[];
     keywords?: KeywordInsight[];
   };
   functionNames: string[];
   selectedYear: number | null;
+  onAskAboutContact?: (contact: Contact) => void;
 }
 
 /* One OpCo section: header + markdown body + optional timeline */
@@ -194,7 +195,7 @@ function OpCoSection({
   );
 }
 
-export function Dashboard({ data, functionNames, selectedYear }: DashboardProps) {
+export function Dashboard({ data, functionNames, selectedYear, onAskAboutContact }: DashboardProps) {
   if (!data) return null;
 
   // Deduplicated sources
@@ -263,6 +264,45 @@ export function Dashboard({ data, functionNames, selectedYear }: DashboardProps)
           );
         })}
       </div>
+
+      {/* Key People Mentioned */}
+      {data.contacts && data.contacts.length > 0 && (
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm print:shadow-none">
+          <div className="mb-4 flex items-center gap-2">
+            <Users className="h-4 w-4 text-brand-magenta" />
+            <h3 className="text-[13px] font-semibold text-brand-navy">Key People Mentioned</h3>
+            <span className="ml-auto rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold text-neutral-500">{data.contacts.length}</span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {data.contacts.map((contact, i) => {
+              const initials = contact.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+              return (
+                <div key={i} className="flex gap-3 rounded-xl border border-neutral-150 bg-neutral-50/60 p-3.5 transition-all hover:border-neutral-200 hover:bg-white hover:shadow-sm">
+                  {/* Avatar */}
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-brand-navy/8 text-[12px] font-bold text-brand-navy">
+                    {initials}
+                  </div>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <h4 className="truncate text-[13px] font-semibold leading-tight text-brand-navy">{contact.name}</h4>
+                    <p className="mt-0.5 text-[11px] font-medium text-neutral-400">{contact.title}</p>
+                    <p className="mt-1.5 text-[12px] leading-5 text-neutral-500 italic">"{contact.relevance}"</p>
+                    {onAskAboutContact && (
+                      <button
+                        type="button"
+                        onClick={() => onAskAboutContact(contact)}
+                        className="mt-2.5 inline-flex items-center gap-1.5 self-start rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-neutral-500 transition-all hover:border-brand-magenta/25 hover:text-brand-magenta print:hidden"
+                      >
+                        <MessageSquare className="h-3 w-3" />
+                        Ask about {contact.name.split(' ')[0]}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Sources */}
       {uniqueSources && uniqueSources.length > 0 && (
